@@ -11,7 +11,7 @@ is a milestone to aim for, not a lock.
 | --- | --- | --- | --- |
 | 1. Soft PLC | now | the OpenPLC v4 runtime on this PC, driven by a self-built Godot 2D plant over Modbus TCP | a Godot scene runs from a program I wrote |
 | 2. First project | months 1-2 | the Godot sorting line in Structured Text **and** ladder logic | both versions sort correctly; the code and a short video are in `projects/` |
-| 3. Real hardware | after ~2 months | OpenPLC on a Raspberry Pi Pico 2 with real 24 V buttons, sensor and lamps (~250 PLN, one-off) | the sorting line's ST program runs on the Pico 2, with the real I/O standing in for the Godot plant |
+| 3. Real hardware | after ~2 months | OpenPLC on a Raspberry Pi Pico 2 with real 24 V buttons, sensor and lamps (~310 PLN, one-off, ordered) | the sorting line's ST program runs on the Pico 2, with the real I/O standing in for the Godot plant |
 | 4. OT security | alongside 2-3 | the ISA/IEC 62443 Cybersecurity Fundamentals Specialist certificate | the certificate is issued |
 
 Study runs the whole time: the `Automation` Anki deck (`deck/`). It is a
@@ -75,26 +75,29 @@ Linux and free tools only: no Windows, no subscriptions.
   - Keep the 24 V 0 V apart from the Pico's GND; the opto and relay boards
     isolate the two.
   - The sensor is PNP NO: its output goes to an opto input's IN+, 0 V to IN-.
-- **Parts** (prices read 2026-10-05, not yet bought; shipping ~10-15 PLN
-  per shop):
+- **Parts**, ordered 2026-10-05 from two shops (no single shop stocks
+  all of them). 310.60 PLN with shipping.
 
-| Part | Qty | PLN |
-| --- | --- | --- |
-| [Raspberry Pi Pico 2 H](https://botland.com.pl/moduly-i-zestawy-do-raspberry-pi-pico-2/26285-raspberry-pi-pico-2-h-rp2350-arm-cortex-m33-ze-zlaczami.html) (headers soldered) | 1 | 27.90 |
-| [Mean Well MDR-20-24](https://botland.com.pl/zasilacze-na-szyne-din/13972-zasilacz-mean-well-mdr-20-24-na-szyne-din-24v-1a-24w-4711287421995.html), 24 V 1 A DIN PSU | 1 | 54.90 |
-| [PC817 opto board](https://kamami.pl/en/electronic-modules/1183108-pc817-module-with-8-optocouplers.html), 8 ch, 3.6-24 V in | 1 | 11.67 |
-| [Relay board](https://botland.com.pl/przekazniki-przekazniki-arduino/2579-modul-przekaznikow-4-kanaly-z-optoizolacja-styki-10a-250vac-cewka-5v-5904422330996.html), 4 ch, opto-isolated | 1 | 19.90 |
-| [LJ12A3-4-Z/BY](https://botland.com.pl/czujniki-zblizeniowe-indukcyjne/11872-indukcyjny-czujnik-zblizeniowy-lj12a3-4-zby-4mm-6-36v-5904422376888.html) inductive sensor, PNP NO | 1 | 17.90 |
-| [XB5AA momentary button](https://jccentrum.pl/produkt/przycisk-sterowniczy-xb5az21-bistabilny-on-off-czarny/), 22 mm: green NO + red NC (state colours at checkout) | 2 | 30.00 |
-| [E-stop](https://jccentrum.pl/produkt/przycisk-awaryjny-bezpieczenstwa-nonc-stop-22mm/), 22 mm mushroom, NO+NC | 1 | 24.00 |
-| [AD16-22DS lamp](https://jccentrum.pl/produkt/lampka-led-sygnalizacyjna-tablicowa-24v-ac-dc-ad16-22ds/), 24 V AC/DC: green + red | 2 | 11.20 |
-| [Kradex Z74J box](https://botland.com.pl/obudowy/6192-obudowa-plastikowa-kradex-z74j-177x126x56mm-jasna-5905275011629.html), 177x126x56 mm | 1 | 28.90 |
-| [F-F jumpers](https://botland.com.pl/przewody-polaczeniowe-zensko-zenskie/19620-zestaw-przewodow-polaczeniowych-justpi-zensko-zenskie-20cm-40szt-5903351243032.html), 20 cm, 40 pcs | 1 | 6.50 |
-| [LgY 0.5 mm2 wire](https://www.markland.pl/przewod-kabel-elektryczny-lgy-linka-1x0-5mm-1m-p-24057.html), per metre | 3 | 3.60 |
-| [Wago 221-413](https://kamami.pl/en/quick-couplers/1180759-compact-installation-coupler-3-wire-4mm-221-413-5906623436842.html), 3-way | 4 | 11.60 |
-| **Total** | | **248.07** |
+| Part | Shop | Qty | PLN |
+| --- | --- | --- | --- |
+| [Raspberry Pi Pico 2 H](https://kamami.pl/plytki-bazowe-z-rp2040-i-rp235x/1196679-raspberry-pi-pico-2-h-ze-zlaczami-rp2350-arm-cortex-m33-risc-v-hazard3.html) (headers soldered) | Kamami | 1 | 29.05 |
+| [PC817 opto board](https://kamami.pl/en/electronic-modules/1183108-pc817-module-with-8-optocouplers.html), 8 ch, 3.6-24 V in | Kamami | 1 | 11.67 |
+| [Relay board](https://kamami.pl/moduly-z-wyjsciami-mocy/1200540-modul-przekaznikow-4-kanaly-z-optoizolacja-10-a-250-v-ac-cewka-5-v-5902186331518.html), 4 ch, opto-isolated, 5 V coils | Kamami | 1 | 18.27 |
+| [Kradex Z74J box](https://kamami.pl/obudowy/1180010-z74j-ps-obudowa-plastikowa-5905275011629.html) | Kamami | 1 | 16.84 |
+| [F-F jumpers](https://kamami.pl/przewody-f-f/204596--przewody-polaczeniowe-f-f-roznokolorowe-17-cm-40-szt-5906623440849.html), 17 cm, 40 pcs | Kamami | 1 | 5.69 |
+| [Silicone wire 16 AWG](https://kamami.pl/przewody-jednozylowe/588149-przewod-jednozylowy-silikonowy-16awg-4m-czerwony-5906623475766.html), per metre | Kamami | 3 | 24.03 |
+| [Wago 221-413](https://kamami.pl/en/quick-couplers/1180759-compact-installation-coupler-3-wire-4mm-221-413-5906623436842.html), 3-way | Kamami | 4 | 11.60 |
+| [Step drill 4-22 mm](https://kamami.pl/wiertla-do-metalu/1186564-wiertlo-stopniowe-4-22mm-yato-yt-44741-5906083013270.html), for the lid holes | Kamami | 1 | 16.35 |
+| [DR-30-24 PSU](https://jccentrum.pl/produkt/zasilacz-na-szyne-dr-30-24-30w-24v-130a/), 24 V 1.3 A DIN | JC Centrum | 1 | 62.00 |
+| [M12 inductive sensor](https://jccentrum.pl/produkt/czujnik-zblizeniowy-indukcyjny-m12-pnp-no-sn-4/), PNP NO, Sn 4 mm | JC Centrum | 1 | 27.00 |
+| [XB5AA momentary button](https://jccentrum.pl/produkt/przycisk-sterowniczy-xb5az21-bistabilny-on-off-czarny/), 22 mm: green NO + red NC | JC Centrum | 2 | 30.00 |
+| [E-stop](https://jccentrum.pl/produkt/przycisk-awaryjny-bezpieczenstwa-nonc-stop-22mm/), 22 mm mushroom, NO+NC | JC Centrum | 1 | 24.00 |
+| [AD16-22DS lamp](https://jccentrum.pl/produkt/lampka-led-sygnalizacyjna-tablicowa-24v-ac-dc-ad16-22ds/), 24 V AC/DC: green + red | JC Centrum | 2 | 11.20 |
+| Shipping | both | | 22.90 |
+| **Total** | | | **310.60** |
 
-Not priced: a 22 mm step drill for the five holes in the lid.
+The Kamami relay page does not state 3.3 V control (Botland's listing of the
+same board does); check it with one channel before wiring the rest.
 
 ### Phase 4: ISA/IEC 62443 Cybersecurity Fundamentals Specialist
 
