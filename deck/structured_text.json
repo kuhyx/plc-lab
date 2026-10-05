@@ -1,0 +1,177 @@
+[
+  {
+    "id": "st-assignment-operator",
+    "front": "Which operator assigns a value to a variable in Structured Text, e.g. putting 5 into nCount?",
+    "back": "`:=`, written as `<operand> := <expression>;`, for example `nCount := 5;`.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528248715.html",
+    "excerpt": "Syntax: <operand> := <expression> This assignment operator performs the same function as the MOVE operator."
+  },
+  {
+    "id": "st-equals-compares",
+    "front": "In ST, what does `bVar := 40 = 40;` store in bVar?",
+    "back": "TRUE. A single `=` is the equality comparison (EQ), not assignment as a C programmer would expect.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529004427.html",
+    "excerpt": "If the operands are the same, the operator returns TRUE , otherwise FALSE . Samples: Result: bVar = TRUE . ST: bVar := 40 = 40;"
+  },
+  {
+    "id": "st-not-equal",
+    "front": "How do you write a \"not equal\" comparison in ST?",
+    "back": "With `<>` (the NE operator): `a <> b` is TRUE when the two operands differ.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529009803.html",
+    "excerpt": "If the operands are not the same, the operator returns TRUE , otherwise FALSE . Samples: Result: bVar = FALSE ST: bVar := 40 <> 40;"
+  },
+  {
+    "id": "st-if-one-branch",
+    "front": "In an ST `IF ... ELSIF ... ELSE ... END_IF` chain, how many branches execute in one pass?",
+    "back": "At most one: the first TRUE condition's branch runs, and ELSE runs only when every condition is FALSE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528275595.html",
+    "excerpt": "If all conditions are FALSE, the statements after ELSE are executed. So at most one branch of the IF statement is executed."
+  },
+  {
+    "id": "st-case-no-fallthrough",
+    "front": "Unlike C's switch, what happens after an ST CASE branch's statements finish?",
+    "back": "The CASE block is exited. There is no fall-through into the next label, so no `break` is needed.",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "there is no fall through for the CASE statement: the first matching condition is entered, and after running its statements, the CASE block is left without checking other conditions."
+  },
+  {
+    "id": "st-case-state-machine",
+    "front": "What is the usual ST pattern for a step-by-step machine sequence?",
+    "back": "A CASE on an integer state variable. Each branch does its step's work, then assigns the next state number.",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "(* simple state machine *) TxtState := STATES [ StateMachine ] ; CASE StateMachine OF 1 : ClosingValve () ; StateMachine := 2 ;"
+  },
+  {
+    "id": "st-repeat-vs-while",
+    "front": "How does an ST REPEAT ... UNTIL loop differ from a WHILE loop?",
+    "back": "REPEAT tests its condition after the body, so the body always runs at least once.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528297099.html",
+    "excerpt": "TwinCAT does not check the termination condition until after the loop has been executed. This behavior has the consequence that the REPEAT loop will run at least once"
+  },
+  {
+    "id": "st-loop-watchdog",
+    "front": "Why can an endless loop in controller code trip the watchdog timer?",
+    "back": "The stuck program never gets back to restarting (kicking) the watchdog, so the timer elapses and signals a timeout that triggers corrective action.",
+    "source": "https://en.wikipedia.org/wiki/Watchdog_timer",
+    "excerpt": "If, due to a hardware fault or program error, the computer fails to restart the watchdog, the timer will elapse and generate a timeout signal."
+  },
+  {
+    "id": "st-cycle-overrun",
+    "front": "In TwinCAT, what happens when a long loop makes a task run past its configured cycle time?",
+    "back": "The unfinished cycle spills into the next cycle, and the task's exceed counter is incremented.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_grundlagen/6828869003.html",
+    "excerpt": "If the defined cycle time of a task is exceeded, processing of the \"old\" cycle continues in the next cycle. In addition, the task exceed counter is incremented."
+  },
+  {
+    "id": "st-fb-instance",
+    "front": "Before you can call a TON timer in ST, what must you declare in VAR?",
+    "back": "A named instance of the function block, such as `fbTMR : TON;`. You then call it by that instance name.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528323979.html",
+    "excerpt": "The timer function block TON is instantiated in fbTMR : TON; and called with assignments for the parameters IN and PT."
+  },
+  {
+    "id": "st-fb-output",
+    "front": "After `fbTMR(IN := bStart, PT := T#300ms);`, how do you read the timer's Q output?",
+    "back": "Use dot notation on the instance, e.g. `bDone := fbTMR.Q;`.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528323979.html",
+    "excerpt": "Output Q is addressed with fbTMR.Q and assigned to the variable bVarA."
+  },
+  {
+    "id": "st-comments",
+    "front": "What are the two comment syntaxes in ST?",
+    "back": "`//` comments to the end of the line. `(* ... *)` encloses a comment that can span several lines.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528329355.html",
+    "excerpt": "Single line Starts with // and ends at the end of the line. // Dies ist ein Kommentar Multi-line Starts with (* and ends with *)."
+  },
+  {
+    "id": "st-time-literal",
+    "front": "How do you write a 5-second TIME literal in ST?",
+    "back": "`T#5s`: the `T#` prefix, then the duration with unit suffixes such as s or ms (e.g. `T#100s12ms`).",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529294987.html",
+    "excerpt": "VAR tLength0 : TIME := T#14ms; tLength1 : TIME := T#100s12ms;"
+  },
+  {
+    "id": "st-hex-literal",
+    "front": "How do you write hexadecimal FF as an integer literal in ST?",
+    "back": "`16#FF`: the base (16), then `#`, then the digits.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529316491.html",
+    "excerpt": "If an integer value is not a decimal number, its base must be written before the integer constant, followed by the hash symbol (#)."
+  },
+  {
+    "id": "st-typed-literal",
+    "front": "What does the typed literal `DINT#34` do that a plain `34` does not?",
+    "back": "It forces the constant to type DINT. Otherwise the compiler picks the smallest data type that fits.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529332619.html",
+    "excerpt": "TwinCAT uses the smallest possible data type for calculations involving IEC constants. If you want to use a different data type, you can do this by using typed literals"
+  },
+  {
+    "id": "st-integer-division",
+    "front": "In ST, what does `1/10` evaluate to, and how do you get 0.1?",
+    "back": "It gives 0 because integer constants divide as integers. Write `1.0/10` to get 0.1.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2529316491.html",
+    "excerpt": "Example: Division 1/10 results in 0, division 1.0/10 results in 0.1."
+  },
+  {
+    "id": "st-mod",
+    "front": "What does `nVar := 9 MOD 2;` assign to nVar?",
+    "back": "1. MOD returns the integer remainder of the division.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528880779.html",
+    "excerpt": "The IEC operator is used for modulo division. The result of the function is the integer remainder of the division."
+  },
+  {
+    "id": "st-overflow-intermediate",
+    "front": "In TwinCAT, why can `(nWord + 1) = 0` be FALSE when the WORD nWord holds 65535?",
+    "back": "Intermediate results use the CPU's native width (at least 32-bit), so 65535 + 1 stays 65536 and does not wrap to 0.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528853899.html",
+    "excerpt": "always calculates intermediate results with the native size specified by the target system. For example, on x86 and Arm ® systems at least 32-bit intermediate values are used"
+  },
+  {
+    "id": "sfc-use-case",
+    "front": "What kind of control problem is Sequential Function Chart (SFC) designed for?",
+    "back": "Processes that split naturally into distinct steps, such as a machine or batch sequence.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "It can be used to program processes that can be split into steps."
+  },
+  {
+    "id": "sfc-initial-step",
+    "front": "In TwinCAT, what happens to an SFC's initial step when the SFC POU is first called?",
+    "back": "TwinCAT switches it on by itself during that very first cycle and runs its step action.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "Initial step: In the first cycle after calling an SFC POU, the initial step is automatically activated and the step action is executed."
+  },
+  {
+    "id": "sfc-transition-fires",
+    "front": "What happens to the surrounding steps when an SFC transition is passed?",
+    "back": "Every step feeding into it switches off in one go, and then every step it leads to switches on in one go.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "When a transition is passed, all steps above are deactivated at once and after all steps below are activated at once."
+  },
+  {
+    "id": "sfc-qualifier-n",
+    "front": "How long does an SFC action with qualifier N run?",
+    "back": "Only while its step is active. N means non-stored, so the action stops when the step deactivates.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "N Non-stored The action is active as long as the step is active."
+  },
+  {
+    "id": "sfc-qualifier-s",
+    "front": "How long does an SFC action with qualifier S keep running?",
+    "back": "From step activation until it is reset (qualifier R), even after its own step has become inactive.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528356235.html",
+    "excerpt": "R overriding Reset The action is deactivated. S Set (Stored) TwinCAT executes the action as soon as the step becomes active. The action continues to be executed, even if the step has already been deactivated, until it is reset."
+  },
+  {
+    "id": "sfc-alternative-branch",
+    "front": "In an SFC alternative branch, which path does TwinCAT take?",
+    "back": "It checks each branch's first transition from left to right. The first branch whose transition is TRUE is followed.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT evaluates the first transition of each alternative branch from left to right. In the first branch, in which TwinCAT finds a transition that returns TRUE, the next step is activated."
+  },
+  {
+    "id": "sfc-parallel-branch",
+    "front": "In an SFC parallel branch, what happens when the transition before the branch becomes TRUE?",
+    "back": "The first step of every branch becomes active, and all the branches then run at the same time.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528350859.html",
+    "excerpt": "TwinCAT activates the first steps in all branches. The branches are then processed simultaneously."
+  }
+]

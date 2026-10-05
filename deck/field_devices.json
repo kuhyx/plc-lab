@@ -1,0 +1,177 @@
+[
+  {
+    "id": "io-24vdc-relay-coil",
+    "front": "What DC coil voltage is typical for machine-tool control relays?",
+    "back": "24 V DC is the usual DC coil voltage for machine-tool relays; AC-coil versions commonly run at 120 or 250 V.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "machine-tool relays usually 24 VDC, 120 or 250 VAC"
+  },
+  {
+    "id": "io-pnp-switches-positive",
+    "front": "Which 3-wire DC sensor output type, PNP or NPN, switches the positive supply line?",
+    "back": "PNP. Its output transistor connects the load to the positive side, so it sources current (positive switching).",
+    "source": "https://cdn.logic-control.com/docs/turck/Sensors/magnetic-sensors/NIMFE-M12-4.6L88-UP6X-H1141%20%20-%20Wiring%20-%20Magnetic%20Sensors.pdf",
+    "excerpt": "PNP transistor (i.e. current sourcing positive switching) N.O. output"
+  },
+  {
+    "id": "io-npn-sinking-layout",
+    "front": "In a 3-wire NPN sensor circuit, where do the sensor's switch and the load sit?",
+    "back": "The sensor switches between its output and 0 V (negative); the load hangs from the positive rail to the output, so current sinks into the sensor.",
+    "source": "https://cdn.automationdirect.com/static/specs/peterms.pdf",
+    "excerpt": "The switching element is connected between the output wire and the negative terminal, and the load is connected between the output wire and the positive terminal."
+  },
+  {
+    "id": "io-two-wire-off-current",
+    "front": "Why does a 2-wire sensor still pass a small current through its load while switched off?",
+    "back": "Having only two leads, it sits in series with the load, so a small off-state current keeps flowing through that load.",
+    "source": "https://cdn.logic-control.com/docs/turck/Sensors/magnetic-sensors/NIMFE-M12-4.6L88-UP6X-H1141%20%20-%20Wiring%20-%20Magnetic%20Sensors.pdf",
+    "excerpt": "Since the sensors are connected in series with the load by means of only two leads, an off-state current flows through the load"
+  },
+  {
+    "id": "io-inductive-needs-metal",
+    "front": "What kind of target does an inductive proximity sensor require?",
+    "back": "A metal one; plastic and other non-metal objects are invisible to it.",
+    "source": "https://en.wikipedia.org/wiki/Proximity_sensor",
+    "excerpt": "an inductive proximity sensor always requires a metal target"
+  },
+  {
+    "id": "io-capacitive-nonmetal",
+    "front": "What can a capacitive proximity sensor detect that an inductive one cannot?",
+    "back": "Non-metal materials such as plastic, wood or liquids, by sensing a change in capacitance in its electric field.",
+    "source": "https://www.ifm.com/gb/en/gb/landing-page-uk/proximity-sensors-explained-types-applications-and-benefits",
+    "excerpt": "Capacitive proximity sensors What they detect : Both metal and non-metal materials How they work : Use electric fields to sense changes in capacitance Where they’re used : Detecting plastic, glass, wood, or liquids"
+  },
+  {
+    "id": "io-photo-through-beam",
+    "front": "How does a through-beam photoelectric sensor detect an object?",
+    "back": "Emitter and receiver face each other; the object is sensed when it interrupts the light reaching the receiver.",
+    "source": "https://en.wikipedia.org/wiki/Photoelectric_sensor",
+    "excerpt": "A through-beam arrangement consists of a receiver located within the line-of-sight of the transmitter. In this mode, an object is detected when the light beam is blocked from getting to the receiver from the transmitter."
+  },
+  {
+    "id": "io-limit-switch-actuation",
+    "front": "What physically actuates a limit switch?",
+    "back": "Contact with a moving machine part, or an object arriving at its position, operates it mechanically.",
+    "source": "https://en.wikipedia.org/wiki/Limit_switch",
+    "excerpt": "a limit switch is a switch operated by the motion of a machine part or the presence of an object."
+  },
+  {
+    "id": "io-nc-contact-behaviour",
+    "front": "What does a normally closed (NC) contact do when its relay coil is energised?",
+    "back": "It opens and breaks the circuit; while the coil is unpowered it stays closed and conducts.",
+    "source": "https://en.wikipedia.org/wiki/Relay",
+    "excerpt": "Normally closed (NC) contacts disconnect the circuit when the relay is activated; the circuit is connected when the relay is inactive."
+  },
+  {
+    "id": "io-contactor-vs-relay",
+    "front": "What distinguishes a contactor from an ordinary control relay?",
+    "back": "It is a relay rated to be wired straight to high-current loads; ordinary relays handle smaller currents.",
+    "source": "https://en.wikipedia.org/wiki/Contactor",
+    "excerpt": "Unlike other relays, contactors are designed to be directly connected to high-current load devices."
+  },
+  {
+    "id": "io-thermal-overload-trip",
+    "front": "How does a thermal overload relay stop an overloaded motor?",
+    "back": "Motor current heats a bimetal strip; sustained overload bends it until a trip bar cuts power to the contactor coil.",
+    "source": "https://en.wikipedia.org/wiki/Motor_controller",
+    "excerpt": "heats a bimetallic strip. The hotter the strip, the more it deflects to the point it pushes a trip bar which disconnects power to the contactor solenoid"
+  },
+  {
+    "id": "io-estop-normally-closed",
+    "front": "Why is an emergency stop button built as a normally closed contact?",
+    "back": "Fail-safe: a cut wire opens the circuit just like pressing the button, so wiring damage cannot leave the E-stop dead.",
+    "source": "https://en.wikipedia.org/wiki/Kill_switch",
+    "excerpt": "For fail-safe operation, the emergency stop button is a normally closed switch, which ensures that a broken wire will not prevent it from being activated"
+  },
+  {
+    "id": "io-estop-stop-categories",
+    "front": "Which IEC 60204-1 stop categories are allowed for an emergency stop?",
+    "back": "Only stop category 0 or stop category 1 (IEC 60204-1); stop category 2 is not an option for E-stop.",
+    "source": "https://www.idec.com/en-ca/solutions/safety/law/iso-iec/iec60204",
+    "excerpt": "An emergency stop shall function as stop category 0 or as stop category 1."
+  },
+  {
+    "id": "io-stop-category-1",
+    "front": "In an IEC 60204-1 stop category 1 stop, what happens to the drive's power?",
+    "back": "It stays on so the drive can brake the motion in a controlled way, and is cut only after the machine has stopped.",
+    "source": "https://www.kollmorgen.com/en-us/developer-network/stop-and-emergency-stop-function",
+    "excerpt": "Stop Category 1 A controlled shut-down, whereby the energy supply to the drive machinery is maintained to perform the shut-down, and the energy supply is only interrupted when the shut-down has been completed."
+  },
+  {
+    "id": "io-estop-direct-opening",
+    "front": "Why must an electrical E-stop device open its contacts by direct mechanical action?",
+    "back": "A rigid linkage forces the contacts apart and latches them, so opening them does not rely only on a spring or on software logic.",
+    "source": "https://machinerysafety101.com/2026/05/18/iso-13850-emergency-stop-requirements/",
+    "excerpt": "electrical emergency stop devices employ direct-opening action with mechanical latching, helping to ensure that contact separation occurs through a direct mechanical linkage rather than relying solely on springs or software logic"
+  },
+  {
+    "id": "io-safety-relay-monitoring",
+    "front": "What does a safety relay detect that a plain relay cannot?",
+    "back": "Faults in its input circuit, such as welded contacts in the E-stop button or in its own output relays.",
+    "source": "https://en.wikipedia.org/wiki/Safety_relay",
+    "excerpt": "The device is designed in such a way that any faults in the input circuit are detected, e.g. contact welding on an emergency off/ emergency stop pushbutton or on one of the safety contacts on the output relay."
+  },
+  {
+    "id": "io-4-20-live-zero",
+    "front": "Why does the 4-20 mA signal range start at 4 mA rather than 0 mA?",
+    "back": "The elevated zero leaves enough current to power the field transmitter even when the measured value is at minimum.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "The \"live\" or \"elevated\" zero of 4 mA allows powering of the device even with no process signal output from the field transmitter."
+  },
+  {
+    "id": "io-4-20-fault-detection",
+    "front": "How can a 4-20 mA receiver tell a broken loop apart from a genuine minimum reading?",
+    "back": "Minimum is 4 mA, so current clearly outside the normal range, such as near 0 mA from a cut wire, is flagged as a fault.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "It is self-monitoring; currents less than 3.8 mA or more than 20.5 mA are taken to indicate a fault."
+  },
+  {
+    "id": "io-current-beats-voltage",
+    "front": "Why is a current signal preferred over a voltage signal on long field cable runs?",
+    "back": "Cable resistance drops voltage along the wire, but that drop does not change the loop current, so the reading stays accurate.",
+    "source": "https://en.wikipedia.org/wiki/Current_loop",
+    "excerpt": "The accuracy of the signal is not affected by voltage drop in the interconnecting wiring."
+  },
+  {
+    "id": "io-analog-raw-counts",
+    "front": "A PLC maps a 0-10 V input to counts 0-32,767. What voltage does a reading of about 16,384 counts mean?",
+    "back": "Roughly 5 V: the card spreads the 0-10 V range across those integer counts, so half the counts means half the input range.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "For example, an analog 0 to 10 V or 4-20 mA current loop input would be converted into an integer value of 0 to 32,767."
+  },
+  {
+    "id": "io-absolute-encoder-power",
+    "front": "What advantage does an absolute encoder have over an incremental one after a power cut?",
+    "back": "It keeps its position information while unpowered, so the shaft position is known again the moment power returns.",
+    "source": "https://en.wikipedia.org/wiki/Rotary_encoder",
+    "excerpt": "An absolute encoder maintains position information when power is removed from the encoder."
+  },
+  {
+    "id": "io-vfd-purpose",
+    "front": "How does a variable-frequency drive (VFD) control an AC motor?",
+    "back": "It changes the frequency of the electricity fed to the motor, which sets the motor's speed and torque.",
+    "source": "https://en.wikipedia.org/wiki/Variable-frequency_drive",
+    "excerpt": "is a type of AC motor drive (system incorporating a motor) that controls speed and torque by varying the frequency of the input electricity."
+  },
+  {
+    "id": "io-solenoid-spring-return",
+    "front": "What usually returns a simple solenoid valve to its rest position when the coil loses power?",
+    "back": "A spring pushes the valve back to its de-energised state.",
+    "source": "https://en.wikipedia.org/wiki/Solenoid_valve",
+    "excerpt": "A spring is often used to return the valve to its resting position once power is shut off."
+  },
+  {
+    "id": "io-cylinder-double-acting",
+    "front": "How does a double-acting pneumatic cylinder differ from a single-acting one?",
+    "back": "Air drives it both ways through two ports; a single-acting cylinder has one port and is air-powered in one direction only.",
+    "source": "https://en.wikipedia.org/wiki/Pneumatic_cylinder",
+    "excerpt": "Double-acting cylinders (DAC) use the force of air to move in both extend and retract strokes. They have two ports to allow air in, one for outstroke and one for instroke."
+  },
+  {
+    "id": "io-optocoupler-isolation",
+    "front": "How does an optocoupler pass an I/O signal between two circuits without an electrical connection?",
+    "back": "The signal is carried across as light, so the two sides stay isolated from each other.",
+    "source": "https://en.wikipedia.org/wiki/Opto-isolator",
+    "excerpt": "is an electronic component that transfers electrical signals between two isolated circuits by using light."
+  }
+]

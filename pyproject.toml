@@ -1,0 +1,93 @@
+[project]
+name = "plc-lab"
+version = "0.1.0"
+description = "A PLC / OT security home-lab roadmap and a source-checked Anki deck"
+requires-python = ">=3.14"
+license = "MIT"
+# genanki writes the .apkg; the excerpt check needs only the standard library
+# plus poppler's pdftotext for PDF sources.
+dependencies = ["genanki==0.13.1"]
+
+[project.optional-dependencies]
+dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.10"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["plc_lab*"]
+
+[tool.ruff]
+target-version = "py314"
+include = ["*.py", "**/*.py"]
+exclude = [".git", ".venv", "__pycache__", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D213", "COM812", "ISC001", "S603"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = [
+    "ANN", "ARG", "D", "E501", "FBT", "PLC0415", "PLR0913", "PLR2004", "PTH",
+    "S101", "SLF001",
+]
+# A command line's job is to write to stdout.
+"plc_lab/cli.py" = ["T201"]
+# Sources are https URLs from the card files (cards.py rejects anything else).
+"plc_lab/sources.py" = ["S310"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["plc_lab"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+ignore_missing_imports = true
+show_error_codes = true
+exclude = [".venv/"]
+
+[tool.pylint.main]
+py-version = "3.14"
+jobs = 0
+ignore = [".venv", "__pycache__"]
+ignore-paths = ["^(.*/)?tests/.*$"]
+
+[tool.pylint.messages_control]
+enable = "all"
+disable = [
+    "use-implicit-booleaness-not-comparison",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+]
+
+[tool.pylint.design]
+min-public-methods = 0
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["plc_lab/tests"]
+addopts = [
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=plc_lab",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-fail-under=100",
+]
+filterwarnings = ["error::ResourceWarning"]
+
+[tool.coverage.run]
+omit = ["plc_lab/tests/*"]

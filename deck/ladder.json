@@ -1,0 +1,177 @@
+[
+  {
+    "id": "ld-rails-and-rungs",
+    "front": "What are the rails and rungs of a ladder diagram?",
+    "back": "The two vertical lines are the rails (the power supply sides); each horizontal line between them is a rung holding one control circuit.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "They are called \"ladder\" diagrams because they resemble a ladder, with two vertical rails (supply power) and as many \"rungs\" (horizontal lines) as there are control circuits to represent."
+  },
+  {
+    "id": "ld-xic-xio-meaning",
+    "front": "Which ladder contact symbols do Rockwell's XIC and XIO instructions correspond to?",
+    "back": "XIC (examine if closed) is the normally-open symbol contact; XIO (examine if open) is the normally-closed symbol contact. The names avoid confusion with physical switch types.",
+    "source": "https://www.ibiblio.org/kuphaldt/socratic/sinst/book/liii.pdf",
+    "excerpt": "In an effort to alleviate this confusion, the Allen-Bradley corporation (Rockwell) uses the terms examine if closed (XIC) and examine if open (XIO) to describe “normally open” and “normally closed” virtual contacts, respectively"
+  },
+  {
+    "id": "ld-normal-state-definition",
+    "front": "What does 'normal' mean in normally open / normally closed for a switch?",
+    "back": "The state of the contacts when the device is at rest with no stimulus, not the state it usually sits in while the process runs.",
+    "source": "https://www.ibiblio.org/kuphaldt/socratic/sinst/book/liii.pdf",
+    "excerpt": "Recall that the “normal” status of any switch is its status while in a resting condition of no stimulation, not necessarily its status while the process is in a “normal” operating mode."
+  },
+  {
+    "id": "ld-stop-wired-nc-why",
+    "front": "Why is a motor Stop pushbutton physically wired normally closed into a PLC input?",
+    "back": "A broken wire then looks exactly like a pressed Stop: the input drops out, so the motor stops.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "However, if the input wiring on input X2 were to fail open, X2 input would de-energize in the same manner as when the \"Stop\" pushbutton is pressed."
+  },
+  {
+    "id": "ld-stop-nc-uses-no-contact",
+    "front": "A Stop button is wired NC into a PLC input. Which contact type should test it in the ladder program?",
+    "back": "A normally open (XIC) contact. The input is energized at rest, so the contact reads closed until Stop is pressed - a logic reversal that confuses beginners.",
+    "source": "https://www.ibiblio.org/kuphaldt/socratic/sinst/book/liii.pdf",
+    "excerpt": "this is a very common way to build PLC-controlled motor start/stop systems – with an NC pushbutton switch and an NO “Stop” virtual contact – students new to PLC programming often find this logical reversal confusing"
+  },
+  {
+    "id": "ld-regular-coil-every-scan",
+    "front": "How often does a regular output coil --( )-- write its variable?",
+    "back": "Every scan: it copies the rung's current result into the bit, TRUE when power reaches it and FALSE when it does not.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "Key characteristic: The variable is updated every scan cycle. It follows the rung state in real time."
+  },
+  {
+    "id": "ld-set-coil-retains",
+    "front": "What does a Set (latch) coil do to its bit when its rung goes false?",
+    "back": "Nothing: it only writes TRUE while energized, so the bit stays TRUE until a Reset coil or other logic clears it.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "When the rung is de-energized, the coil does nothing. The variable retains its current value."
+  },
+  {
+    "id": "ld-set-reset-same-scan",
+    "front": "Set and Reset coils for one bit are both energized in the same scan. Which one wins?",
+    "back": "Whichever is evaluated last, because rungs run top to bottom. Placing the Reset rung below the Set rung gives stop priority.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/coil-elements",
+    "excerpt": "When a Set and a Reset for the same variable are both energized in the same scan, the last one evaluated wins (since rungs execute top to bottom)."
+  },
+  {
+    "id": "ld-seal-in-contact",
+    "front": "In a start/stop motor rung, where does the seal-in contact go and what does it achieve?",
+    "back": "An NO contact of the motor's own contactor/output sits in parallel with Start, so the coil keeps itself powered after Start is released.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "a normally-open \"seal-in\" contact from the contactor is connected in parallel with the start switch, so that once the contactor is energized it maintains power to itself"
+  },
+  {
+    "id": "ld-rung-evaluation-order",
+    "front": "In what order does a PLC typically evaluate ladder logic?",
+    "back": "Left to right along each rung and top to bottom through the program, so a coil set in one rung can feed rungs below it.",
+    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
+    "excerpt": "Typically, complex ladder logic is \"read\" left to right and top to bottom. As each of the lines (or rungs) are evaluated the output coil of a rung may feed into the next stage of the ladder as an input."
+  },
+  {
+    "id": "ld-duplicate-coils-bug",
+    "front": "Why is driving the same bit from regular output coils on two different rungs a bug?",
+    "back": "Each coil is its own write to that bit, so the rungs fight and the one scanned last overwrites the other's result.",
+    "source": "https://www.ibiblio.org/kuphaldt/socratic/sinst/book/liii.pdf",
+    "excerpt": "With each coil representing a “write” instruction, multiple coils bearing the same name represents multiple “write” operations to the same bit in the PLC’s memory."
+  },
+  {
+    "id": "ld-multiple-contacts-ok",
+    "front": "How many contacts in a ladder program may reference the same bit?",
+    "back": "Any number: contacts only read the bit, and repeated reads of one bit never conflict.",
+    "source": "https://www.ibiblio.org/kuphaldt/socratic/sinst/book/liii.pdf",
+    "excerpt": "Multiple contacts with identical addresses are no problem whatsoever, because multiple “read” operations to the same bit in memory will never cause a conflict."
+  },
+  {
+    "id": "ld-r-trig-output",
+    "front": "What does the Q output of an R_TRIG block do when CLK goes from FALSE to TRUE?",
+    "back": "Q is TRUE for exactly one PLC cycle, then FALSE again even if CLK stays TRUE, until CLK falls and rises once more.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74391563.html",
+    "excerpt": "As soon as CLK = TRUE, Q is set to TRUE for one cycle. This means that each time the function is called, Q returns FALSE until CLK has a falling edge and then a rising edge."
+  },
+  {
+    "id": "ld-n-contact-falling-edge",
+    "front": "What does an N (falling edge) contact in a ladder rung respond to?",
+    "back": "Its bit changing from TRUE to FALSE: it conducts for just one scan at that moment and blocks otherwise.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/programming-languages/ladder-diagram/contact-elements",
+    "excerpt": "The Falling Edge contact detects the transition of a variable from TRUE to FALSE. It passes power for exactly one scan cycle at the moment the variable goes from TRUE to FALSE."
+  },
+  {
+    "id": "ld-ton-early-drop",
+    "front": "In a TON on-delay timer, what happens if IN goes FALSE before the preset time PT is reached?",
+    "back": "The timer resets and Q never turns on, so IN must stay TRUE continuously for the full PT.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/timer-blocks",
+    "excerpt": "If IN goes LOW before PT is reached, the timer resets and Q never activates. This is the most common timer in industrial automation."
+  },
+  {
+    "id": "ld-ton-et-and-q",
+    "front": "While IN stays TRUE on a TON timer, how do ET and Q behave?",
+    "back": "ET counts up from zero until it reaches PT; Q turns TRUE only once ET has reached PT with IN still TRUE.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74406539.html",
+    "excerpt": "As soon as IN is set to TRUE, the time in milliseconds is counted up in ET until the setpoint PT is reached. Q is TRUE, if IN = TRUE and ET = PT."
+  },
+  {
+    "id": "ld-tof-purpose",
+    "front": "What does a TOF off-delay timer do, and what is a typical use?",
+    "back": "Its Q stays TRUE for PT after IN goes FALSE, e.g. letting a motor's cooling fan run on for a while after shutdown.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/timer-blocks",
+    "excerpt": "Use TOF when you need an output to remain active for a period after a condition is no longer met. For example, keeping a cooling fan running after a motor shuts off."
+  },
+  {
+    "id": "ld-tp-ignores-in",
+    "front": "How does a TP pulse timer's Q react if IN goes FALSE in the middle of a pulse?",
+    "back": "It ignores it: once started, Q stays TRUE for the full pulse time PT regardless of IN.",
+    "source": "https://infosys.beckhoff.com/content/1033/tcplclib_tc2_standard/74408075.html",
+    "excerpt": "The Q output remains TRUE until the pulse duration has elapsed, irrespective of the state of the IN input."
+  },
+  {
+    "id": "ld-counter-built-in-edge",
+    "front": "What happens to a CTU's count if its CU input stays TRUE for many scans?",
+    "back": "It rises by only one, on the first FALSE-to-TRUE scan; IEC counters detect the edge themselves, so no extra R_TRIG is needed.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "If an input stays HIGH for multiple scan cycles, the counter increments only once. On the first scan where the input transitions from FALSE to TRUE. You don't need to add your own edge detection when using counters."
+  },
+  {
+    "id": "ld-ctu-q-condition",
+    "front": "When does the Q output of a CTU up-counter become TRUE?",
+    "back": "Once the running count CV is at or above the preset PV (CV >= PV).",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "The output Q becomes TRUE when CV reaches or exceeds the preset value PV"
+  },
+  {
+    "id": "ld-ctu-reset-priority",
+    "front": "On a CTU counter, what happens if R is TRUE in the same scan as a rising edge on CU?",
+    "back": "Reset wins: CV is forced back to 0, because R overrides counting.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "If R is TRUE, CV is reset to 0 (reset takes priority over counting)."
+  },
+  {
+    "id": "ld-ctd-load",
+    "front": "What does the LD input of a CTD down-counter do?",
+    "back": "While LD is TRUE it copies the preset PV into CV, giving the starting count to decrement from.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "When the load input LD is TRUE, CV is loaded with the preset value PV"
+  },
+  {
+    "id": "ld-ctud-qu-qd",
+    "front": "What do the QU and QD outputs of a CTUD up/down counter indicate?",
+    "back": "QU signals the count has hit the preset PV or more; QD signals it has dropped to zero or less.",
+    "source": "https://edge.autonomylogic.com/docs/openplc-editor/standard-function-blocks/counter-blocks",
+    "excerpt": "It has two output flags: QU indicates the count has reached or exceeded the preset, and QD indicates the count has reached zero or below."
+  },
+  {
+    "id": "ld-forward-reverse-interlock",
+    "front": "How are forward and reverse motor contactors interlocked so both cannot energize at once?",
+    "back": "Each direction's rung includes a normally closed auxiliary contact of the other contactor, so whichever is energized opens the other's path.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "Now, when M 1 is energized, the normally-closed auxiliary contact on the second rung will be open, thus preventing M 2 from being energized, even if the \"Reverse\" pushbutton is actuated."
+  },
+  {
+    "id": "ld-why-ladder-for-plcs",
+    "front": "Why was the first PLC programming language made to look like relay ladder diagrams?",
+    "back": "So electricians and engineers already used to reading relay ladder schematics could program the PLCs that replaced those relay panels.",
+    "source": "https://www.ibiblio.org/kuphaldt/electricCircuits/Digital/DIGI_6.html",
+    "excerpt": "In an effort to make PLCs easy to program, their programming language was designed to resemble ladder logic diagrams. Thus, an industrial electrician or electrical engineer accustomed to reading ladder logic schematics would feel comfortable programming a PLC"
+  }
+]

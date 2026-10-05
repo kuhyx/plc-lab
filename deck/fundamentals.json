@@ -1,0 +1,177 @@
+[
+  {
+    "id": "fund-plc-definition",
+    "front": "What is a programmable logic controller (PLC), in one sentence?",
+    "back": "A hardened industrial computer built to control manufacturing equipment such as machines, robots and assembly lines.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "is an industrial computer that has been ruggedized and adapted for the control of manufacturing processes, such as assembly lines , machines, robotic devices"
+  },
+  {
+    "id": "fund-plc-vs-relay-panel",
+    "front": "What was the main drawback of hard-wired relay control panels that PLCs were introduced to fix?",
+    "back": "Altering the process meant physical rewiring plus updating the documentation; a PLC moves that logic into a changeable program.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "The hard-wired nature of these components made it difficult for design engineers to alter the automation process. Changes would require rewiring and careful updating of the documentation."
+  },
+  {
+    "id": "fund-plc-vs-desktop-pc",
+    "front": "Why have ordinary desktop PCs not generally replaced PLCs as controllers in heavy industry?",
+    "back": "Their operating systems are less stable, and their hardware is not rated for harsh plant conditions such as heat and vibration.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "because desktop computers run on less stable operating systems than PLCs, and because the desktop computer hardware is typically not designed to the same levels of tolerance to temperature, humidity, vibration, and longevity as PLCs"
+  },
+  {
+    "id": "fund-scan-cycle-order",
+    "front": "In what order does the simplest PLC scan cycle perform its three steps?",
+    "back": "Sample the inputs, run the program, then update the outputs - and start over again on the next scan.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "Read inputs Execute the program Write outputs The program follows the sequence of instructions."
+  },
+  {
+    "id": "fund-process-image-inputs",
+    "front": "In a CODESYS-based PLC, when does a task read the physical inputs it uses into its input image?",
+    "back": "At the beginning of each run of that task, before its program logic executes.",
+    "source": "https://www.eaton.com.cn/content/dam/eaton/technicaldocumentation/mn/MN048008ZU_EN.pdf",
+    "excerpt": "This configuration is created for each task and attached to the relevant task. Based on this configuration the inputs are read at the beginning of the task."
+  },
+  {
+    "id": "fund-task-watchdog",
+    "front": "What does an enabled task watchdog do when the task keeps overrunning its configured watchdog time?",
+    "back": "It aborts the task with an exception error once the time is exceeded for a number of consecutive cycles set by the sensitivity parameter.",
+    "source": "https://www.eaton.com.cn/content/dam/eaton/technicaldocumentation/mn/MN048008ZU_EN.pdf",
+    "excerpt": "The task is terminated with the error status «Exception error»: - If the time defined at «Time (e.g. t#200ms)» was exceeded for several cycles in succession (number depends on «Sensitivity» setting)."
+  },
+  {
+    "id": "fund-modular-rack",
+    "front": "In a modular PLC, what does the rack (chassis) hold?",
+    "back": "Plug-in modules picked for the application, such as the power supply, the CPU and the I/O cards.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "has a chassis (also called a rack ) that provides space for modules with different functions, such as power supply, processor, selection of I/O modules and communication interfaces"
+  },
+  {
+    "id": "fund-remote-io-response",
+    "front": "What effect does adding remote I/O, such as an external rack of I/O modules, have on PLC response time?",
+    "back": "It makes the response time less predictable by adding extra uncertainty.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "If the system contains remote I/O—for example, an external rack with I/O modules—then that introduces additional uncertainty in the response time of the PLC system."
+  },
+  {
+    "id": "fund-digital-signal",
+    "front": "What values can a discrete (digital) PLC signal take, and which field devices typically provide one?",
+    "back": "Just two states, on or off (1/0); limit switches and photoelectric sensors are common sources.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "Discrete (digital) signals can only take on or off value (1 or 0, true or false ). Examples of devices providing a discrete signal include limit switches and photoelectric sensors"
+  },
+  {
+    "id": "fund-analog-scaling",
+    "front": "How does a PLC typically represent a 4-20 mA analog input inside the program?",
+    "back": "The signal is converted to an integer, e.g. 0 to 32,767, which the PLC then scales into engineering units.",
+    "source": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+    "excerpt": "an analog 0 to 10 V or 4-20 mA current loop input would be converted into an integer value of 0 to 32,767. The PLC will take this value and translate it into the desired units"
+  },
+  {
+    "id": "fund-retain-variables",
+    "front": "What does declaring a PLC variable RETAIN change after a power failure?",
+    "back": "It keeps its last value and the program resumes with it, while ordinary variables restart from their initial values.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528803467.html",
+    "excerpt": "RETAIN variables retain their value after an uncontrolled termination (power failure). When the program restarts, the system continues to operate with the stored values. In this case TwinCAT reinitializes \"normal\" variables with their explicitly specified initial values"
+  },
+  {
+    "id": "fund-five-languages",
+    "front": "Name the five PLC programming languages defined by IEC 61131-3 up to its third edition.",
+    "back": "Ladder Diagram (LD), Function Block Diagram (FBD), Structured Text (ST), Sequential Function Chart (SFC) and Instruction List (IL).",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "The other supported languages are ladder logic , sequential function chart , structured text , and instruction list"
+  },
+  {
+    "id": "fund-il-status",
+    "front": "What is the status of Instruction List (IL) in recent editions of IEC 61131-3?",
+    "back": "Marked obsolete in the 2013 third edition and no longer present at all in the 2025 fourth edition.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "Previous editions also included: Instruction list (IL), textual. Deprecated in the third edition (2013) and removed in the fourth edition (2025)."
+  },
+  {
+    "id": "fund-sfc-elements",
+    "front": "What are the main building blocks of a Sequential Function Chart (SFC)?",
+    "back": "Steps carrying actions, transitions guarded by logic conditions, and directed links that join steps to transitions.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "Main components of SFC are: Steps with associated actions; Transitions with associated logic conditions; Directed links between steps and transitions."
+  },
+  {
+    "id": "fund-function-no-memory",
+    "front": "Why does an IEC 61131-3 FUNCTION keep no state from one call to the next?",
+    "back": "Its variables are temporary stack data, valid only during execution and re-initialised on every call.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530284939.html",
+    "excerpt": "All data of a function are temporary and are only valid while the function is executed (stack variables). This means that TwinCAT re-initializes all variables that you have declared in a function each time the function is called."
+  },
+  {
+    "id": "fund-fb-instance-memory",
+    "front": "What does a FUNCTION_BLOCK instance remember between calls that a function does not?",
+    "back": "The values of its outputs and internal variables, so the same inputs can give different outputs on later calls.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530279563.html",
+    "excerpt": "The values of the output variables and the internal variables are retained until the next execution. This means that the function block may not return the same output values"
+  },
+  {
+    "id": "fund-program-no-instances",
+    "front": "How does a PROGRAM POU differ from a function block with respect to instances?",
+    "back": "A program has no instances: it owns one set of values that persists between calls, whichever POU calls it.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2530274187.html",
+    "excerpt": "Programs do not have instances. If a POU calls a program and the call results in changes to the values of the program, the changes are retained until the next program call."
+  },
+  {
+    "id": "fund-task-triggers",
+    "front": "What can trigger the start of a PLC task in a CODESYS-based controller?",
+    "back": "Time (a fixed cyclic interval, or freewheeling) or an event, such as a variable's rising edge or a PLC interrupt.",
+    "source": "https://www.eaton.com.cn/content/dam/eaton/technicaldocumentation/mn/MN048008ZU_EN.pdf",
+    "excerpt": "This condition can either be defined by time (cyclic interval, freewheeling) or by an internal or external event which will start the task; for example the rising edge of a global project variable or an interrupt event of the PLC."
+  },
+  {
+    "id": "fund-var-global",
+    "front": "Where are VAR_GLOBAL variables declared, and how far does their visibility extend?",
+    "back": "In global variable lists between VAR_GLOBAL and END_VAR; they are visible across the entire PLC project.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528776587.html",
+    "excerpt": "Global variables are \"normal\" variables, constants, or retentive variables that are known throughout the project. Global variables are declared in global variable lists between the keywords VAR_GLOBAL and END_VAR."
+  },
+  {
+    "id": "fund-var-input-by-value",
+    "front": "How is an argument passed to a POU's VAR_INPUT variable when the POU is called?",
+    "back": "By value: the callee receives a copy of the value, not a reference to the caller's variable.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528760459.html",
+    "excerpt": "VAR_INPUT variables are declared in the declaration part of programming objects between the keywords VAR_INPUT and END_VAR. When called, only the value is transferred (pass-by-value)."
+  },
+  {
+    "id": "fund-var-output-purpose",
+    "front": "What are VAR_OUTPUT variables of a function block used for?",
+    "back": "They carry results back to the caller, which can read them after the call and use them further.",
+    "source": "https://infosys.beckhoff.com/content/1033/tc3_plc_intro/2528765835.html",
+    "excerpt": "TwinCAT returns the values of these variables to the calling function block. There you can query the values and continue to use them."
+  },
+  {
+    "id": "fund-int-vs-dint",
+    "front": "What is the size difference between the IEC 61131-3 data types INT and DINT?",
+    "back": "INT is a 16-bit (2-byte) signed integer; DINT is a 32-bit (4-byte) signed double integer.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "INT – signed integer (2 byte) DINT – signed double integer (4 byte)"
+  },
+  {
+    "id": "fund-real-type",
+    "front": "What kind of number is the IEC 61131-3 REAL data type, and how many bytes does it occupy?",
+    "back": "A 4-byte floating-point number in the IEC 60559 (IEEE 754) format; LREAL is the 8-byte version.",
+    "source": "https://en.wikipedia.org/wiki/IEC_61131-3",
+    "excerpt": "REAL – floating point IEC 60559 (same as IEEE 754-2008 ) REAL – (4 byte) LREAL – (8 byte)"
+  },
+  {
+    "id": "fund-openplc-runtime",
+    "front": "What does the OpenPLC Runtime do, and what is it controlled by?",
+    "back": "It executes IEC 61131-3 programs on ordinary computing hardware without a GUI, and is driven by the OpenPLC Editor.",
+    "source": "https://github.com/Autonomy-Logic/OpenPLC-Runtime",
+    "excerpt": "is a headless industrial Programmable Logic Controller (PLC) runtime that can run IEC 61131-3 programs on standard computing hardware. It is designed to be controlled by the OpenPLC Editor v4 desktop application"
+  },
+  {
+    "id": "fund-openplc-rpi",
+    "front": "Which low-cost single-board computer is an officially supported install target for the open-source OpenPLC v3 runtime?",
+    "back": "The Raspberry Pi; OpenPLC's installer has a dedicated rpi platform option for it.",
+    "source": "https://github.com/thiagoralves/OpenPLC_v3",
+    "excerpt": "rpi - Install OpenPLC on a Raspberry Pi"
+  }
+]

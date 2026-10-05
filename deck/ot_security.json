@@ -1,0 +1,226 @@
+[
+  {
+    "id": "sec-ot-security-priorities",
+    "front": "Per NIST SP 800-82r3, how are confidentiality, integrity and availability typically ranked in OT security?",
+    "back": "Integrity and availability come first and confidentiality last, while human safety sits above all three as the overriding concern.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "OT security objectives typically prioritize integrity and availability, followed by confidentiality, but also must consider safety as an overarching priority."
+  },
+  {
+    "id": "sec-ics-definition",
+    "front": "What is an industrial control system (ICS)?",
+    "back": "An electronic control system, together with its associated instrumentation, used to control industrial processes.",
+    "source": "https://en.wikipedia.org/wiki/Industrial_control_system",
+    "excerpt": "is an electronic control system and associated instrumentation used for industrial process control"
+  },
+  {
+    "id": "sec-scada-definition",
+    "front": "What does a SCADA system combine, and what is it for?",
+    "back": "Data acquisition, data transmission and HMI software, joined into one centralized system for monitoring and controlling many process inputs and outputs.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "SCADA systems integrate data acquisition systems with data transmission systems and HMI software to provide a centralized monitoring and control system for numerous process inputs and outputs."
+  },
+  {
+    "id": "sec-purdue-levels-0-2",
+    "front": "In the Purdue model, what belongs at levels 0, 1 and 2?",
+    "back": "Level 0: the physical process itself. Level 1: sensors, analyzers and actuators acting on it. Level 2: control systems that supervise and monitor it.",
+    "source": "https://en.wikipedia.org/wiki/Purdue_Enterprise_Reference_Architecture",
+    "excerpt": "level 0 - the physical process - defines the actual physical processes. level 1 - intelligent devices - sensing and manipulating the physical processes. process sensors, analyzers, actuators and related instrumentation. level 2 - control systems - supervising, monitoring"
+  },
+  {
+    "id": "sec-purdue-level-3",
+    "front": "Which kinds of systems sit at Purdue level 3 (manufacturing operations)?",
+    "back": "Systems that manage the production workflow, such as MES/MOM, batch management and data historians.",
+    "source": "https://en.wikipedia.org/wiki/Purdue_Enterprise_Reference_Architecture",
+    "excerpt": "level 3 - manufacturing operations systems - managing production work flow to produce the desired products. batch management; manufacturing execution/operations management systems (mes/moms); laboratory, maintenance and plant performance management systems; data historians"
+  },
+  {
+    "id": "sec-ot-dmz-placement",
+    "front": "Per NIST SP 800-82r3, which two tiers does the OT DMZ bridge?",
+    "back": "Operations management (monitoring and managing field devices and Purdue level 3) and the enterprise tiers above it.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "the operations management level includes devices for monitoring and managing the field level devices and the Purdue level 3 components. The DMZ includes devices that support bridging the operations management and enterprise tiers."
+  },
+  {
+    "id": "sec-62443-series-groups",
+    "front": "After the 'General' group, what do IEC 62443's policies-and-procedures, system and component groups each cover?",
+    "back": "Policies and procedures: managing industrial security. System: security functions of control systems. Components: requirements for developing automation products.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "policies and procedures: this primarily describes a system for managing industrial it security. system: various specifications for security functions of control and automation systems are described here. components and requirements: the requirements for product development processes for components"
+  },
+  {
+    "id": "sec-62443-2-1-audience",
+    "front": "Whom does IEC 62443-2-1 (security program requirements for IACS asset owners) address, and what does it require?",
+    "back": "The operators of automation solutions; it sets requirements for how security is handled while their plants are running.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "This part of the standard is aimed at operators of automation solutions and defines requirements for how security during the operation of plants is to be considered"
+  },
+  {
+    "id": "sec-62443-2-4-audience",
+    "front": "What does IEC 62443-2-4 define, and for which role?",
+    "back": "Required security capabilities for integrators (IACS service providers), grouped into 12 topic areas.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "This part defines requirements (\"capabilities\") for integrators. These requirements are divided into 12 topics"
+  },
+  {
+    "id": "sec-zone-definition",
+    "front": "In IEC 62443, what is a security zone?",
+    "back": "A grouping of logical or physical assets that share the same security requirements, expressed as a security level.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Zones divide a system into homogeneous zones by grouping the (logical or physical) assets with common security requirements. The security requirements are defined by security level (SL)."
+  },
+  {
+    "id": "sec-conduit-definition",
+    "front": "In IEC 62443, what is a conduit?",
+    "back": "The set of elements carrying communication between two zones; it supplies security functions so zones with different security levels can safely coexist.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "Conduits group the elements that allow communication between two zones. They provide security functions that enable secure communication and allow the coexistence of zones with different security levels."
+  },
+  {
+    "id": "sec-sl-1-2",
+    "front": "What threat does IEC 62443 security level 1 resist, and what does SL 2 add?",
+    "back": "SL 1 guards against accidental or unintentional misuse; SL 2 against deliberate attacks using simple means, few resources, general skills and low motivation.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "security level 1: protection against unintentional or accidental misuse. security level 2: protection against intentional misuse by simple means with few resources, general skills and low motivation."
+  },
+  {
+    "id": "sec-sl-3-4",
+    "front": "How does the attacker resisted at IEC 62443 SL 4 differ from the one at SL 3?",
+    "back": "Both are sophisticated and know automation; SL 3 assumes moderate resources and motivation, SL 4 extensive resources and high motivation.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "security level 3: protection against intentional misuse by sophisticated means with moderate resources, automation-specific knowledge and moderate motivation. security level 4: protection against intentional misuse using sophisticated means with extensive resources, automation-specific knowledge and high motivation."
+  },
+  {
+    "id": "sec-sl-t-c-a",
+    "front": "What is the difference between SL-T, SL-C and SL-A in IEC 62443?",
+    "back": "SL-T is the level you aim for, SL-C what a system or component is able to reach, SL-A what an evaluation shows it actually has.",
+    "source": "https://www.controleng.com/dont-overshoot-your-security-target/",
+    "excerpt": "capability security level (SL-C): the level a system or component can achieve target security level (SL-T): the level the organization wants to reach achieved security level (SL-A): the evaluated and actual security"
+  },
+  {
+    "id": "sec-fr-1-3",
+    "front": "What are IEC 62443 foundational requirements FR1, FR2 and FR3?",
+    "back": "FR1 identification and authentication control, FR2 use control, FR3 system integrity.",
+    "source": "https://exida.com/Blog/iec-62443-levels-levels-and-more-levels",
+    "excerpt": "FR1 - Identification and Authentication Control FR2 - Use Control FR3 - System Integrity"
+  },
+  {
+    "id": "sec-fr-4-5",
+    "front": "What are IEC 62443 foundational requirements FR4 and FR5?",
+    "back": "FR4 data confidentiality and FR5 restricted data flow.",
+    "source": "https://exida.com/Blog/iec-62443-levels-levels-and-more-levels",
+    "excerpt": "FR4 - Data Confidentiality FR5 - Restricted Data Flow"
+  },
+  {
+    "id": "sec-fr-6-7",
+    "front": "What are IEC 62443 foundational requirements FR6 and FR7?",
+    "back": "FR6 timely response to events and FR7 resource availability.",
+    "source": "https://exida.com/Blog/iec-62443-levels-levels-and-more-levels",
+    "excerpt": "FR6 - Timely Response to Events FR7 - Resource Availability"
+  },
+  {
+    "id": "sec-62443-3-2-purpose",
+    "front": "What does IEC 62443-3-2 produce for each zone and conduit?",
+    "back": "A target security level (SL-T), derived from a cybersecurity risk assessment of that zone or conduit.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "IEC 62443-3-2 describes how the target security levels of zones and conduits are derived from a risk assessment."
+  },
+  {
+    "id": "sec-62443-4-1-sdl",
+    "front": "What does IEC 62443-4-1 define, and how is it organized?",
+    "back": "The secure product development process a product supplier must follow, organized into eight practices such as security requirements definition and secure design.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "This part defines how a secure product development process should look like. It is divided into eight areas (\"practices\"): management of development, definition of security requirements, design of security solutions"
+  },
+  {
+    "id": "sec-isasecure-ssa-csa",
+    "front": "Against which IEC 62443 parts do ISASecure's SSA (systems) and CSA (components) schemes certify?",
+    "back": "SSA: systems against 62443-3-3 plus 4-1. CSA: automation components against 62443-4-2 plus 4-1, the supplier development-process standard.",
+    "source": "https://en.wikipedia.org/wiki/IEC_62443",
+    "excerpt": "SSA (System Security Assurance) certification of systems according to IEC 62443-3-3 and IEC 62443-4-1 CSA (Component Security Assurance) certification of automation components according to IEC 62443-4-1 and IEC 62443-4-2"
+  },
+  {
+    "id": "sec-defense-in-depth",
+    "front": "What two basic ideas underlie a defense-in-depth strategy for OT?",
+    "back": "Avoid any single point of failure in the defenses and never assume threats come from only one place, so controls are arranged in protective layers.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "The basic concepts are to prevent single points of failure in cybersecurity defenses and to assume no single origin of threats. From this position, cybersecurity controls are organized to provide layers of protection"
+  },
+  {
+    "id": "sec-stuxnet-target",
+    "front": "What did Stuxnet physically sabotage, and through which devices?",
+    "back": "Iranian centrifuges: it compromised the PLCs controlling them and made the fast-spinning centrifuges tear themselves apart.",
+    "source": "https://en.wikipedia.org/wiki/Stuxnet",
+    "excerpt": "Stuxnet reportedly compromised Iranian PLCs, collecting information on industrial systems and causing the fast-spinning centrifuges to tear themselves apart."
+  },
+  {
+    "id": "sec-ukraine-2015",
+    "front": "What happened in the December 2015 cyberattack on Ukrainian power companies?",
+    "back": "Attackers remotely operated breakers at more than 50 substations, causing outages that hit over 225,000 customers.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "On December 23, 2015, Ukrainian power companies experienced a cyberattack that caused power outages and impacted over 225,000 customers in Ukraine. Over 50 regional substations experienced malicious remote operation of their breakers."
+  },
+  {
+    "id": "sec-triton-target",
+    "front": "What kind of system did the TRITON (TRISIS) malware target in 2017, and where?",
+    "back": "The safety instrumented system (SIS) of a Saudi Arabian petrochemical plant; the SIS responded by safely shutting the process down.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "A petrochemical facility in Saudi Arabia was attacked using malicious software that targeted the industrial SIS. The SIS initiated a safe shutdown of the petrochemical process in 2017"
+  },
+  {
+    "id": "sec-nist-800-82",
+    "front": "Which NIST Special Publication is the US guide to operational technology (OT) security, and what is its current revision?",
+    "back": "NIST SP 800-82, now at Revision 3 (September 2023), titled Guide to Operational Technology (OT) Security.",
+    "source": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf",
+    "excerpt": "NIST SP 800-82r3 September 2023 Guide to Operational Technology (OT) Security"
+  },
+  {
+    "id": "sec-62443-3-3-scope",
+    "front": "What does IEC 62443-3-3 specify, and who is its main audience?",
+    "back": "Technical security requirements for a whole IACS system, graded by security level; aimed at control-system suppliers, integrators and asset owners.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Part 3-3: System security requirements and security levels describes the requirements for an IACS system based on security level."
+  },
+  {
+    "id": "sec-62443-4-2-scope",
+    "front": "Which four kinds of IACS component do IEC 62443-4-2's requirements cover?",
+    "back": "Embedded devices, host devices, network devices and software applications, each graded by security level.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Components include embedded devices, host devices, network devices and software applications."
+  },
+  {
+    "id": "sec-security-level-definition",
+    "front": "How does ISA/IEC 62443 define a security level?",
+    "back": "As a measure of confidence that a system, zone or conduit has no vulnerabilities and works as intended.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "Security level is defined as the measure of confidence that the SuC, zone or conduit is free from vulnerabilities and functions in the intended manner."
+  },
+  {
+    "id": "sec-fr1-fr2-access-control",
+    "front": "FR1 and FR2 together are sometimes called access control. Why does IEC 62443 keep them as two FRs?",
+    "back": "Splitting them keeps the number of requirements under each FR manageable.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "The combination of FR 1 and FR 2 is sometimes called access control; they were split into two FRs to keep the total number of requirements at a manageable level."
+  },
+  {
+    "id": "sec-maturity-vs-security-level",
+    "front": "In ISA/IEC 62443, what do maturity levels measure, as opposed to security levels?",
+    "back": "Maturity levels rate processes (people, policies, procedures); security levels rate the strength of technical requirements.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "While security levels are a measure of the strength of technical requirements, maturity levels are a measure of processes (people, policies and procedures)."
+  },
+  {
+    "id": "sec-threat-modeling",
+    "front": "In the IEC 62443-4-1 product lifecycle, what does threat modeling identify?",
+    "back": "Data flows, trust boundaries, attack vectors and potential threats to the control system; it is kept updated through the product's life.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "threat modeling which is a systematic process to identify data flows, trust boundaries, attack vectors and potential threats to the control system."
+  },
+  {
+    "id": "sec-essential-functions",
+    "front": "What are ISA/IEC 62443's three essential functions, and what is losing each one called?",
+    "back": "Safety instrumented function, control function, operator view and manipulation; losing them is loss of protection, control and view.",
+    "source": "https://isagca.org/hubfs/2023%20ISA%20Website%20Redesigns/ISAGCA/PDFs/ISAGCA%20Quick%20Start%20Guide%20FINAL.pdf",
+    "excerpt": "The loss of essential functions is commonly termed: loss of protection, loss of control and loss of view, respectively."
+  }
+]
