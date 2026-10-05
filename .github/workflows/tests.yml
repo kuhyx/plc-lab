@@ -51,8 +51,9 @@ jobs:
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ steps.py.outputs.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      # sim-lint needs Godot; sim.yml runs it.
       - if: matrix.task == 'pre-commit'
         name: pre-commit (Python hooks)
         run: |
           .venv/bin/python -m pip install --quiet pre-commit
-          SKIP=dependency-freshness .venv/bin/pre-commit run --all-files
+          SKIP=dependency-freshness,sim-lint .venv/bin/pre-commit run --all-files

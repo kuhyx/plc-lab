@@ -3,7 +3,8 @@ default_language_version:
   python: python3
 default_stages: [pre-commit]
 fail_fast: false
-exclude: ^build/
+# sim/addons is GUT (cloned by scripts/sim_setup.sh); sim/.godot is Godot's cache.
+exclude: ^(build|sim/addons|sim/\.godot)/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -111,6 +112,15 @@ repos:
         files: >-
           (pyproject\.toml|requirements.*\.txt
           |\.github/workflows/.*\.ya?ml)$
+      # The Godot sorting line: gdlint, gdformat --check and a headless parse
+      # with warnings as errors. Needs godot + scripts/sim_setup.sh; the
+      # Python CI job skips it and .github/workflows/sim.yml runs it instead.
+      - id: sim-lint
+        name: sim lint (gdlint, gdformat, strict parse)
+        entry: scripts/sim_lint.sh
+        language: system
+        pass_filenames: false
+        files: ^sim/.*\.gd$
       - id: repo-contract
         name: repo contract (CLAUDE.md Commands + test_changed)
         entry: scripts/check_repo_contract.sh

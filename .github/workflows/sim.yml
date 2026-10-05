@@ -1,0 +1,53 @@
+name: sim
+
+# The Godot sorting line (sim/): lint (gdlint, gdformat, warnings-as-errors
+# parse), then the GUT unit and integration suites, headless. The integration
+# suite runs 20 seeded boxes over loopback TCP against the mock PLC.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the shared gates
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+      - name: Point the delegates at that checkout
+        run: echo "UTILS_ROOT=$GITHUB_WORKSPACE/.utils" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        id: py
+        with:
+          python-version: "3.x"
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+
+      # Same venv cache as tests.yml: gdtoolkit is in the dev extras.
+      - name: Restore the dev venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ steps.py.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
+      - name: Dev venv
+        run: bash scripts/setup_dev.sh
+
+      - name: GUT and the import cache
+        run: scripts/sim_setup.sh
+
+      - name: Lint and test
+        run: |
+          scripts/sim_lint.sh
+          scripts/sim_test.sh

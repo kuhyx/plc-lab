@@ -10,7 +10,7 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 readonly PY=".venv/bin/python"
-full=0 touched=0
+full=0 touched=0 sim=0
 tests=()
 
 while IFS= read -r f; do
@@ -18,6 +18,7 @@ while IFS= read -r f; do
     case "$f" in
         pyproject.toml | */conftest.py | plc_lab/tests/_*.py) full=1; touched=1 ;;
         plc_lab/tests/test_*.py) touched=1; tests+=("$f") ;;
+        sim/*) sim=1 ;;
         plc_lab/*.py)
             touched=1
             base="$(basename "$f" .py)"
@@ -27,11 +28,18 @@ while IFS= read -r f; do
     esac
 done < <({ git diff --name-only HEAD 2>/dev/null || git ls-files; git ls-files --others --exclude-standard; } | sort -u)
 
-if [[ $touched -eq 0 ]]; then
-    echo "no python changes vs HEAD: nothing to test"; exit 0
+if [[ $touched -eq 0 && $sim -eq 0 ]]; then
+    echo "no python or sim changes vs HEAD: nothing to test"; exit 0
 fi
 rc=0
-if [[ $full -eq 1 ]]; then
+if [[ $sim -eq 1 ]]; then
+    echo "sim: running GUT suite"
+    scripts/sim_test.sh >/tmp/plc-lab-sim-test.log 2>&1 \
+        || { tail -40 /tmp/plc-lab-sim-test.log; rc=1; }
+fi
+if [[ $touched -eq 0 ]]; then
+    :
+elif [[ $full -eq 1 ]]; then
     echo "python: running full suite"
     "$PY" -m pytest -q --tb=short || rc=1
 else

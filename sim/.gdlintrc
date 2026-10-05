@@ -1,0 +1,8 @@
+# gdtoolkit (gdlint) - every check on, strictest thresholds. File cap matches the
+# shared 250-line gate so gdlint and pre-commit can never disagree.
+max-file-lines: 250
+max-line-length: 100
+max-public-methods: 12
+function-arguments-number: 4
+max-returns: 4
+disable: []

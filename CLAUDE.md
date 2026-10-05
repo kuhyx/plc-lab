@@ -33,3 +33,7 @@ Read README.md first. These are the invariants that are easy to break.
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy plc_lab`
 - coverage: `.venv/bin/python -m pytest -q --cov-report=lcov:coverage.lcov`
 - coverage-gaps: `coverage-gaps coverage.lcov`
+- sim-setup: `scripts/sim_setup.sh` (GUT at a pinned tag, Godot import cache)
+- sim-run: `godot --path sim -- --mock --autostart` (built-in mock PLC)
+- sim-test: `scripts/sim_test.sh` (GUT, headless)
+- sim-lint: `scripts/sim_lint.sh` (gdlint, gdformat, strict parse)

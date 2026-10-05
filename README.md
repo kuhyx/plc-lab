@@ -33,16 +33,20 @@ Linux and free tools only: no Windows, no subscriptions.
   - Protocols: Modbus TCP (server and client), Modbus RTU (master), OPC UA,
     S7comm and EtherCAT. There is no DNP3 or EtherNet/IP in v4.
   - Docs: [user-docs](https://github.com/autonomy-logic/user-docs).
-- **Modbus server.** It is off until the project adds one in the editor;
-  the editor's default port is 502
-  ([server docs](https://github.com/Autonomy-Logic/user-docs/blob/main/docs/openplc-editor/communication/modbus/server.md)).
-  Run the container with `--network host` (as the install script does) or
-  publish 502 as well, or the plant cannot reach it.
-- **The plant is a Godot 2D scene** that is the Modbus TCP *client*: it
-  reads coils (%QX: motors, diverters) and writes discrete inputs (%IX:
-  photo-eyes, buttons). Godot has no Modbus addon, so the client is a small
-  GDScript class over
-  [StreamPeerTCP](https://docs.godotengine.org/en/stable/classes/class_streampeertcp.html).
+- **OpenPLC is the Modbus master.** The project adds the plant as a
+  *Remote Device* (Modbus TCP, 127.0.0.1:1502, unit 1): FC 2 groups read
+  the plant's discrete inputs into %IX, FC 5 groups write %QX to its coils
+  ([remote device docs](https://github.com/Autonomy-Logic/user-docs/blob/main/docs/openplc-editor/communication/modbus/client.md)).
+  Run the container with `--network host` (as the install script does) so
+  it can reach the plant on the loopback.
+- **The plant is a Godot 2D scene** that is a Modbus TCP *server* (remote
+  I/O) on port 1502, since 502 needs root. A client cannot write discrete
+  inputs, so the plant cannot be the client. It serves its photo-eyes and
+  buttons as read-only discrete inputs and takes motors and the diverter
+  as coils. Godot has no Modbus addon, so the server is a small GDScript
+  class over
+  [TCPServer](https://docs.godotengine.org/en/stable/classes/class_tcpserver.html).
+  If no request arrives for 0.5 s, every coil drops to off.
 
 ### Phase 2: the sorting line
 
