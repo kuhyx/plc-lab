@@ -18,7 +18,7 @@ while IFS= read -r f; do
     case "$f" in
         pyproject.toml | */conftest.py | plc_lab/tests/_*.py) full=1; touched=1 ;;
         plc_lab/tests/test_*.py) touched=1; tests+=("$f") ;;
-        sim/*) sim=1 ;;
+        sim/* | projects/sorting-line/README.md) sim=1 ;;  # README table = IoMap
         plc_lab/*.py)
             touched=1
             base="$(basename "$f" .py)"
