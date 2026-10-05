@@ -34,6 +34,8 @@ ignore = ["D203", "D213", "COM812", "ISC001", "S603"]
 ]
 # A command line's job is to write to stdout.
 "plc_lab/cli.py" = ["T201"]
+# Run by hand; its progress lines are the evidence the import worked.
+"scripts/import_to_server.py" = ["T201"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
 "plc_lab/sources.py" = ["S310"]
 
