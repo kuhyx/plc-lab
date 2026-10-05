@@ -19,14 +19,21 @@ var _autostart: bool = false
 
 
 func _ready() -> void:
-	var options: Dictionary[String, String] = parse_args(OS.get_cmdline_user_args())
+	setup(OS.get_cmdline_user_args())
+
+
+## Builds the plant, listens, and (with --mock) starts the mock PLC.
+func setup(args: PackedStringArray) -> void:
+	var options: Dictionary[String, String] = parse_args(args)
 	port = _int_option(options, "port", IoMap.PORT)
 	model = PlantModel.new(_int_option(options, "seed", 1), _int_option(options, "boxes", 0))
 	_listen_error = server.listen(port)
 	if _listen_error != OK:
 		push_error("cannot listen on 127.0.0.1:%d (%s)" % [port, error_string(_listen_error)])
 	_autostart = options.has("autostart")
-	if options.has("mock"):
+	# Without our own server, the mock would reach whichever process owns the
+	# port (e.g. a second instance driving the first one's plant).
+	if options.has("mock") and _listen_error == OK:
 		mock = MockPlc.new()
 		var err: Error = mock.connect_to("127.0.0.1", port)
 		if err != OK:
@@ -85,7 +92,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func status_text() -> String:
 	if _listen_error != OK:
-		return "cannot listen on 127.0.0.1:%d: %s" % [port, error_string(_listen_error)]
+		return (
+			"cannot listen on 127.0.0.1:%d: %s; mock PLC not started"
+			% [port, error_string(_listen_error)]
+		)
 	if server.is_online():
 		return (
 			"PLC online (%s) on 127.0.0.1:%d" % ["mock" if mock != null else "Modbus master", port]

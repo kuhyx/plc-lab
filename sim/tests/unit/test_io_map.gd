@@ -40,3 +40,27 @@ func test_every_coil_has_one_name() -> void:
 
 func test_port_needs_no_root() -> void:
 	assert_gt(IoMap.PORT, 1023)
+
+
+## `| DI | 0 | start | ... |` rows of the projects/ table, by kind.
+func _readme_names(kind: String) -> PackedStringArray:
+	var path: String = ProjectSettings.globalize_path("res://").path_join(
+		"../projects/sorting-line/README.md"
+	)
+	var text: String = FileAccess.get_file_as_string(path)
+	assert_false(text.is_empty(), "cannot read %s" % path)
+	var names: Array[String] = []
+	for line: String in text.split("\n"):
+		var cells: PackedStringArray = line.split("|")
+		if cells.size() > 4 and cells[1].strip_edges() == kind:
+			assert_eq(cells[2].strip_edges().to_int(), names.size(), "%s address order" % kind)
+			names.append(cells[3].strip_edges())
+	return PackedStringArray(names)
+
+
+func test_readme_table_matches_inputs() -> void:
+	assert_eq(_readme_names("DI"), IoMap.INPUT_NAMES)
+
+
+func test_readme_table_matches_coils() -> void:
+	assert_eq(_readme_names("coil"), IoMap.COIL_NAMES)

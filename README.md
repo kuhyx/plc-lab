@@ -57,7 +57,8 @@ Linux and free tools only: no Windows, no subscriptions.
   ladder logic with seal-ins, timers and edge detection. Both go in
   `projects/sorting-line/`, along with the Modbus address map and a short
   video.
-- The plant lives in `sim/`; its spec is `TODO-sim.md`.
+- The plant lives in `sim/`. The address map and the OpenPLC runbook are in
+  [`projects/sorting-line/`](projects/sorting-line/README.md).
 
 ### Phase 3: a Pico 2 with real 24 V I/O
 
