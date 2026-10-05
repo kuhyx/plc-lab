@@ -81,6 +81,7 @@ repos:
         args:
           - --skip=*.json,*.lock,.git,__pycache__,.venv
           - --ignore-words-list=nd,te,als,ans,ot
+          - --uri-ignore-words-list=produkt
   - repo: local
     hooks:
       - id: shellcheck
