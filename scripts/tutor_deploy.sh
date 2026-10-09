@@ -7,7 +7,7 @@
 # tree, so half-finished edits in ~/src/plc-lab are never served. A deploy:
 #   1. copies a new release,
 #   2. smoke-tests it on a scratch port against a copy of today's sessions
-#      (it must start, resume the live session and serve a valid app.js),
+#      (it must start, resume the live session and serve valid page JS),
 #   3. waits until no reply is in flight (the newest session log does not
 #      end on a learner message),
 #   4. stops the old server gracefully and starts the release, which resumes
@@ -118,8 +118,12 @@ smoke_test() {
         echo "Smoke test: expected session '$expected', release resumed '$got'" >&2
         exit 1
     fi
-    curl -sf -m 5 "http://127.0.0.1:$port/static/app.js" >"$TEMP_DIR/app.js"
-    node --check "$TEMP_DIR/app.js"
+    # index.html loads all three; a missing one leaves the page blank.
+    local script
+    for script in app.js report.js net.js; do
+        curl -sf -m 5 "http://127.0.0.1:$port/static/$script" >"$TEMP_DIR/$script"
+        node --check "$TEMP_DIR/$script"
+    done
     curl -sf -m 5 "http://127.0.0.1:$port/api/cards" | jq -e 'length > 0' >/dev/null
     kill "$SMOKE_PID"
     SMOKE_PID=""
