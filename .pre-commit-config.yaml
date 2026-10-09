@@ -22,7 +22,7 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
-        exclude: ^plc_lab/tests/(_[a-z][a-z_]*|conftest)\.py$
+        exclude: ^plc_lab/(tutor/)?tests/(_[a-z][a-z_]*|conftest)\.py$
       - id: check-ast
       - id: mixed-line-ending
         args: [--fix=lf]

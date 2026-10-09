@@ -5,11 +5,22 @@ description = "A PLC / OT security home-lab roadmap and a source-checked Anki de
 requires-python = ">=3.14"
 license = "MIT"
 # genanki writes the .apkg; the excerpt check needs only the standard library
-# plus poppler's pdftotext for PDF sources.
-dependencies = ["genanki==0.13.1"]
+# plus poppler's pdftotext for PDF sources. The tutor (plc_lab/tutor) adds:
+# claude-agent-sdk (drives the logged-in claude CLI, no API key), starlette +
+# uvicorn (the localhost page), schemdraw (code-drawn circuit diagrams) and
+# earned-time (the signed ledger the tutor's credit rows go in).
+dependencies = [
+    "genanki==0.13.1",
+    "claude-agent-sdk==0.2.165",
+    "starlette==1.7.0",
+    "uvicorn==0.54.0",
+    "schemdraw==0.23",
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.0#subdirectory=earned_time",
+]
 
 [project.optional-dependencies]
-dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.10", "gdtoolkit==4.5.0"]
+# httpx: Starlette's TestClient (the tutor's HTTP tests) needs it.
+dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.10", "gdtoolkit==4.5.0", "httpx==0.28.1"]
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -17,6 +28,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["plc_lab*"]
+
+[tool.setuptools.package-data]
+"plc_lab.tutor" = ["static/*"]
 
 [tool.ruff]
 target-version = "py314"
@@ -36,6 +50,17 @@ ignore = ["D203", "D213", "COM812", "ISC001", "S603"]
 "plc_lab/cli.py" = ["T201"]
 # Run by hand; its progress lines are the evidence the import worked.
 "scripts/import_to_server.py" = ["T201"]
+# Run by hand; their stdout lines are the evidence (canary, run, verdicts).
+"plc_lab/tutor/__main__.py" = ["T201"]
+"plc_lab/tutor/isolation.py" = ["T201"]
+# The scripted learner only calls the tutor's own --url (a localhost server).
+"plc_lab/tutor/scripted.py" = ["S310", "T201"]
+"plc_lab/tutor/adjudicate.py" = ["T201"]
+# The Commons fetcher only talks to commons.wikimedia.org / upload.wikimedia.org.
+"plc_lab/tutor/images.py" = ["S310"]
+# user_reply(t, text, low_effort) / check_result(t, passed): positional booleans
+# by the interface engine, resume and the tests agreed on.
+"plc_lab/tutor/clock.py" = ["FBT001"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
 "plc_lab/sources.py" = ["S310"]
 
@@ -73,12 +98,14 @@ disable = [
 
 [tool.pylint.design]
 min-public-methods = 0
+# The tutor's turn / replay records carry 9-12 fields; same cap as testsAndMisc.
+max-attributes = 12
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
 
 [tool.pytest.ini_options]
-testpaths = ["plc_lab/tests"]
+testpaths = ["plc_lab/tests", "plc_lab/tutor/tests"]
 addopts = [
     "-q",
     "--strict-markers",
@@ -92,4 +119,4 @@ addopts = [
 filterwarnings = ["error::ResourceWarning"]
 
 [tool.coverage.run]
-omit = ["plc_lab/tests/*"]
+omit = ["plc_lab/tests/*", "plc_lab/tutor/tests/*"]

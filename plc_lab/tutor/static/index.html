@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation tutor</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="bar">
+  <h1>Automation tutor</h1>
+  <div id="counter" class="counter" aria-live="polite">
+    <span id="credited">Credited 0/60 min</span>
+    <span id="blocks" class="blocks"><i></i><i></i><i></i><i></i></span>
+  </div>
+  <div id="active" class="muted">Not started</div>
+  <div id="paused" class="pill pill-warn" hidden></div>
+  <div id="toast" class="pill pill-ok" hidden></div>
+  <button id="report-open" type="button" class="ghost" title="Tell the developer something is wrong (not sent to the tutor)">Report a problem</button>
+</header>
+<main class="layout">
+  <section class="chat" aria-label="Conversation">
+    <div id="empty" class="start">
+      <p>Pick a card. The tutor will first ask what you already know, then teach what is missing.</p>
+      <select id="cards" aria-label="Card"></select>
+      <button id="start" class="primary">Start session</button>
+    </div>
+    <div id="log"></div>
+    <div id="busy" class="muted" hidden>Tutor is thinking...</div>
+    <div id="error" class="error" hidden>
+      <p id="error-summary"></p>
+      <button id="error-copy" type="button">Copy error</button>
+      <details>
+        <summary>Details</summary>
+        <pre id="error-detail"></pre>
+      </details>
+    </div>
+    <!-- Developer feedback, outside #log (re-rendered every poll) and outside
+         #composer (its submit goes to the tutor). Never reaches the model. -->
+    <section id="report" class="report" hidden aria-label="Report a problem">
+      <div id="report-form">
+        <p class="report-title">Report a problem <span class="muted">- for the developer, not sent to the tutor</span></p>
+        <p id="report-scope" class="muted"></p>
+        <label for="report-category">Category</label>
+        <select id="report-category">
+          <option value="ui">UI</option>
+          <option value="response">Tutor's response</option>
+          <option value="experience">Overall experience</option>
+          <option value="other">Other</option>
+        </select>
+        <label for="report-text">What is wrong?</label>
+        <textarea id="report-text" rows="3" maxlength="4000" placeholder="e.g. it posted the same image twice"></textarea>
+        <p id="report-error" class="error" hidden></p>
+        <div class="report-actions">
+          <button id="report-cancel" type="button">Cancel</button>
+          <button id="report-submit" type="button" class="primary">Save report</button>
+        </div>
+      </div>
+      <div id="report-done" hidden>
+        <p id="report-saved" class="report-title"></p>
+        <div class="report-actions">
+          <button id="report-close" type="button">Close</button>
+          <button id="report-copy" type="button" class="primary">Copy report</button>
+        </div>
+        <details>
+          <summary>Report (markdown)</summary>
+          <pre id="report-md"></pre>
+        </details>
+      </div>
+    </section>
+    <form id="composer" hidden>
+      <textarea id="text" rows="3" placeholder="Your answer. Reason it out; guesses are welcome."></textarea>
+      <button class="primary" type="submit">Send</button>
+    </form>
+  </section>
+  <aside class="side" aria-label="Progress">
+    <h2>Target card</h2>
+    <p id="card" class="muted">-</p>
+    <button id="switch" type="button" hidden>Switch card</button>
+    <h2>Mastered</h2>
+    <ul id="mastered" class="muted"></ul>
+  </aside>
+</main>
+<script src="/static/app.js"></script>
+<script src="/static/report.js"></script>
+<script src="/static/net.js"></script>
+</body>
+</html>
