@@ -12,6 +12,7 @@ from plc_lab.tutor.clock import (
     GENERATION_CAP,
     LOW_EFFORT,
     MAX_BLOCKS,
+    REPLY_TIMEOUT,
     STALLED,
     TUTOR_OVERDUE,
     BlockReady,
@@ -51,11 +52,21 @@ def test_reply_within_timeout_counts_in_full() -> None:
 
 def test_late_reply_earns_nothing_and_pauses() -> None:
     clock = EngagementClock(T0)
-    exchange(clock, T0, 181)
+    exchange(clock, T0, REPLY_TIMEOUT + 1)
     snap = clock.snapshot()
     assert clock.active_seconds == 0
     assert snap["paused"] is True
     assert snap["paused_reason"] == STALLED
+
+
+def test_five_minutes_of_thinking_counts_in_full() -> None:
+    # 2026-10-10: 3 min cut off real design thinking; the window is 6 min.
+    assert REPLY_TIMEOUT == 360
+    assert STALLED == "no reply for 6 min"
+    clock = EngagementClock(T0)
+    exchange(clock, T0, 300)
+    assert clock.active_seconds == 300
+    assert clock.snapshot()["paused"] is False
 
 
 def test_late_substantive_reply_still_earns_tutor_time() -> None:
@@ -194,7 +205,7 @@ def test_snapshot_is_json_and_sees_live_pauses() -> None:
     clock = EngagementClock(T0)
     clock.tutor_message(T0)
     assert clock.snapshot(T0 + 100)["paused"] is False
-    assert clock.snapshot(T0 + 181)["paused_reason"] == STALLED
+    assert clock.snapshot(T0 + REPLY_TIMEOUT + 1)["paused_reason"] == STALLED
     clock.user_reply(T0 + 20, ANSWER, low_effort=False)
     assert clock.snapshot(T0 + 50)["paused"] is False
     clock.tutor_message(T0 + 30)

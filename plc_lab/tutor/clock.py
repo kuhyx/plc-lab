@@ -30,12 +30,14 @@ from dataclasses import dataclass
 import re
 from typing import Final
 
-REPLY_TIMEOUT: Final = 180.0
+# Long enough to think a design question through (kuhy, 2026-10-10: 3 min
+# cut off real thinking and forfeited the whole gap).
+REPLY_TIMEOUT: Final = 360.0
 GENERATION_CAP: Final = 60.0
 BLOCK_SECONDS: Final = 900.0
 MAX_BLOCKS: Final = 4
 
-STALLED: Final = "no reply for 3 min"
+STALLED: Final = f"no reply for {REPLY_TIMEOUT // 60:.0f} min"
 LOW_EFFORT: Final = "low-effort reply"
 TUTOR_OVERDUE: Final = "tutor not responding"
 
