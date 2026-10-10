@@ -28,6 +28,7 @@ Read README.md first. These are the invariants that are easy to break.
 ## Commands
 
 - run: `.venv/bin/python -m plc_lab build`
+- tutor: `./run.sh` (opens the Automation tutor on 127.0.0.1:8778, starts it from the live release if down; `--no-open` skips the browser)
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy plc_lab`
