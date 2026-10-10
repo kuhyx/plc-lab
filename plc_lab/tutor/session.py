@@ -136,6 +136,8 @@ class TutorSession:
         self._task: asyncio.Task[None] | None = None
         self._inflight: asyncio.Future[Reply] | None = None
         self.last_init: dict[str, Any] = {}
+        # CLI processes that ended: each makes the next ask a fresh, amnesic one.
+        self.restarts = 0
 
     async def ask_raw(self, prompt: Prompt) -> Reply:
         """Send one user message (text or content blocks); return the raw reply."""
@@ -189,12 +191,12 @@ class TutorSession:
     def _on_exit(self, task: asyncio.Task[None]) -> None:
         """The process is gone: fail its callers now, not at the turn timeout.
 
-        The next :meth:`ask_raw` starts a fresh process with NO memory of the
-        conversation: nothing re-primes it mid-session (the engine's resume
-        primer is only set by ``Engine.resume_latest`` at server start).
+        The next ask starts a fresh process with no memory; :attr:`restarts`
+        counts up first, so a failed caller already sees it and re-primes.
         """
         if self._task is task:
             self._task = None
+            self.restarts += 1
         waiting = [self._inflight] if self._inflight is not None else []
         self._inflight = None
         while not self._queue.empty():

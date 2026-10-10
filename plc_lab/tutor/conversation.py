@@ -31,6 +31,8 @@ class Conversation:
     notes: list[str] = field(default_factory=list)
     # After a restart: the transcript primer the next model call starts with.
     resume_note: str = ""
+    # The session's ``restarts`` already primed for (a CLI death mid-session).
+    restarts_seen: int = 0
     # Id of the last learner message answered; a resend after a dropped
     # connection (the page retries through a restart) is not asked twice.
     answered_id: str = ""

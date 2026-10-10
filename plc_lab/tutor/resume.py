@@ -139,3 +139,15 @@ def primer(messages: list[dict[str, Any]]) -> str:
         "learner's newest message follows the transcript.\n"
         f"<transcript>\n{transcript}\n</transcript>"
     )
+
+
+def reprime(conv: Conversation, restarts: int) -> None:
+    """Prime the next call once per CLI death since the last one (session.py).
+
+    Assigned, not appended: a retry that crashes again still sends one copy.
+    The current learner text is not in ``messages`` yet, so it is not doubled.
+    """
+    if restarts > conv.restarts_seen:
+        conv.restarts_seen = restarts
+        if conv.messages:
+            conv.resume_note = primer(conv.messages)

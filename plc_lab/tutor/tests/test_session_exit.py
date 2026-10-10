@@ -57,6 +57,7 @@ def test_a_cli_dying_mid_turn_fails_the_caller_fast_and_restarts(
         sess = TutorSession(ClaudeAgentOptions())
         with pytest.raises(RuntimeError, match="cli died"):
             await asyncio.wait_for(sess.ask_raw("first"), 5)
+        assert sess.restarts == 1  # counted before the caller was failed
         await asyncio.sleep(0)  # let _on_exit run
         assert sess._task is None
         assert sess._inflight is None
@@ -182,6 +183,7 @@ def test_an_old_task_exiting_leaves_its_replacement_alone() -> None:
         sess._task = current
         sess._on_exit(old)  # clean exit, nobody waiting: nothing to do
         assert sess._task is current
+        assert sess.restarts == 0  # a stale task is not the live process
         await current
 
     asyncio.run(scenario())

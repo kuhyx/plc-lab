@@ -186,6 +186,7 @@ class Engine:
         self, prompt_text: str, *, learner_text: str | None, msg_id: str = ""
     ) -> None:
         session, conv, _ = self._live()
+        resume.reprime(conv, session.restarts)
         t_learner = self.time()
         active = conv.clock.active_seconds
         note = engine_note(

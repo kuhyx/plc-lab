@@ -17,6 +17,10 @@ def turn(message: str = "What do you know about a coil?", **fields: Any) -> Tuto
     return TutorTurn(message=message, **fields)
 
 
+class CliDiedError(RuntimeError):
+    """A scripted reply: the CLI dies mid-turn (counted as ``_on_exit`` does)."""
+
+
 class FakeSession(TutorSession):
     """Answers each ``ask`` with the next scripted turn (or raises it)."""
 
@@ -31,6 +35,8 @@ class FakeSession(TutorSession):
         """The next scripted reply."""
         self.prompts.append(prompt)
         item = self.replies.pop(0)
+        if isinstance(item, CliDiedError):
+            self.restarts += 1  # before the caller sees the failure
         if isinstance(item, Exception):
             raise item
         return item, Reply(None, item.message, {}, 0, 0.25)
