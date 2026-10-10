@@ -106,7 +106,7 @@ def test_fresh_skips_resume_and_simulate_time_is_passed(served: Recorder) -> Non
 
 
 def test_default_port_is_the_documented_one() -> None:
-    assert tutor_main.DEFAULT_PORT == 8772
+    assert tutor_main.DEFAULT_PORT == 8778
 
 
 def test_port_busy_sees_a_listening_socket() -> None:

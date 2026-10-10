@@ -27,7 +27,7 @@ readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly DATA="${AUTOMATION_TUTOR_DATA:-$HOME/.local/share/automation_tutor}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
 SRC="$REPO"
-PORT=8772
+PORT=8778
 WAIT_LIMIT=300
 KEEP_RELEASES=5
 TEMP_DIR=""
@@ -47,7 +47,7 @@ trap cleanup EXIT
 usage() {
     echo "Usage: $SCRIPT_NAME [--src DIR] [--port N] [--wait SECONDS]"
     echo "  --src DIR   copy the release from DIR instead of this repo"
-    echo "  --port N    live port (default 8772)"
+    echo "  --port N    live port (default 8778)"
     echo "  --wait S    longest wait for an in-flight reply to finish (default 300)"
     exit 0
 }

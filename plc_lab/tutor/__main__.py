@@ -12,7 +12,7 @@ import uvicorn
 from plc_lab.tutor.engine import Engine
 from plc_lab.tutor.server import create_app
 
-DEFAULT_PORT = 8772
+DEFAULT_PORT = 8778
 
 
 def _port_busy(port: int) -> bool:
