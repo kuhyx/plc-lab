@@ -9,17 +9,15 @@ from claude_agent_sdk import ProcessError
 import pytest
 from starlette.testclient import TestClient
 
-from plc_lab.tutor import credit, server
+from plc_lab.tutor import server
 from plc_lab.tutor.engine import Engine
 from plc_lab.tutor.server import create_app
 from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeSession, ManualClock, turn
+from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
-
-    from plc_lab.tutor.clock import BlockReady
 
 NAME = "0123456789abcdef"
 
@@ -34,13 +32,9 @@ class Rig:
         self.engine = Engine(
             store=Store(root / "data"),
             now=ManualClock(),
-            credit_fn=self.credit,
+            credit_fn=FakeCredit(),
             session_factory=lambda _prompt: fake,
         )
-
-    @staticmethod
-    def credit(_block: BlockReady, sid: str) -> credit.CreditReceipt:
-        return credit.CreditReceipt(True, 1, f"{sid}-b1", None)
 
 
 @pytest.fixture
@@ -143,7 +137,7 @@ def test_resent_msg_id_is_answered_once(client: TestClient, rig: Rig) -> None:
     assert again.json()["messages"] == first.json()["messages"]
     assert len(rig.fake.prompts) == 2
     assert rig.engine._conv is not None
-    assert rig.engine._conv.answered_id == "m" * 64
+    assert rig.engine._conv.resumed.answered_id == "m" * 64
 
 
 def test_unexpected_error_is_a_500_with_the_error_body(rig: Rig) -> None:

@@ -39,6 +39,7 @@ done
 
 # The chromium wrapper returns before the PNG exists; the pipe waits for its
 # "bytes written" line, so the server is never killed mid-screenshot.
+# The run ends with Stop here, so the final shots open the stopped session by id.
 shot() {  # shot <name> <anchor>: headless, temp profile, never the live display
     chromium --headless=new --no-sandbox --user-data-dir="$(mktemp -d)" --disable-gpu \
         --hide-scrollbars --window-size=1280,1000 --virtual-time-budget=6000 \
@@ -55,8 +56,9 @@ session="$(ls -t "$RUN"/data/sessions/*.jsonl | head -1)"
 cp "$session" "$ROOT/build/tutor-screenshots/transcript.jsonl"
 "$PY" -m plc_lab.tutor.adjudicate "$session" | tee "$ROOT/build/tutor-screenshots/adjudication.txt" || true
 
+sid="$(basename "$session" .jsonl)"
 for name in image diagram last; do
     anchor="$("$PY" -m plc_lab.tutor.adjudicate --anchors "$session" | jq -r ".$name")"
-    shot "session-$name" "$anchor"
+    shot "session-$name" "$sid/$anchor"
 done
 echo "screenshots in $ROOT/build/tutor-screenshots/"

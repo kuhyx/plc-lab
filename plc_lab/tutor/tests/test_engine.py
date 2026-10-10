@@ -12,13 +12,11 @@ import pytest
 from plc_lab.tutor.engine import Engine
 from plc_lab.tutor.session import SessionError
 from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeSession, ManualClock, turn
+from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.clock import BlockReady
-    from plc_lab.tutor.credit import CreditReceipt
 
 CARD = "io-24vdc-relay-coil"
 ANSWER = "the coil becomes a magnet and pulls the contact closed"
@@ -119,7 +117,7 @@ def test_failed_reply_leaves_no_bubble_and_retry_counts_once(tmp_path: Path) -> 
     with pytest.raises(SessionError):
         asyncio.run(engine.reply(ANSWER, msg_id="m1"))
     assert [m["role"] for m in engine.messages] == ["tutor"]
-    assert engine._live()[1].answered_id == ""
+    assert engine._live()[1].resumed.answered_id == ""
     state = asyncio.run(engine.reply(ANSWER, msg_id="m1"))
     assert [m["role"] for m in state["messages"]] == ["tutor", "learner", "tutor"]
     # The note the failed call carried is not lost: the retry carries it.
@@ -160,7 +158,9 @@ def test_checks_mastery_and_card_done(tmp_path: Path) -> None:
     assert next(c for c in engine.cards() if c["id"] == CARD)["done"] is True
 
 
-def test_low_effort_masters_nothing_and_no_pass_no_card_done(tmp_path: Path) -> None:
+def test_low_effort_masters_nothing_and_the_tutors_card_done_stands(
+    tmp_path: Path,
+) -> None:
     fake = FakeSession(
         turn(),
         turn(
@@ -172,45 +172,70 @@ def test_low_effort_masters_nothing_and_no_pass_no_card_done(tmp_path: Path) -> 
     )
     engine = make(tmp_path, fake)
     asyncio.run(engine.start(CARD))
-    low = asyncio.run(engine.reply("ok"))["messages"][-1]
-    assert "mastered_new" not in low
-    assert "card_done" not in low
+    state = asyncio.run(engine.reply("ok"))
+    assert "mastered_new" not in state["messages"][-1]
+    # No check gate: the tutor's word finishes the card, once, with its session.
+    assert state["messages"][-1]["card_done"] is True
+    assert state["card_done"] is True
+    done = engine.store.progress()["cards_done"]
+    assert done[CARD]["session"] == engine.session_id
     failed = asyncio.run(engine.reply(ANSWER))["messages"][-1]
-    assert "card_done" not in failed
+    assert failed["card_done"] is True
     assert engine.store.mastered() == []
+    assert [e["type"] for e in events(engine)].count("learner") == 2
 
 
-def test_blocks_are_credited_through_the_injected_writer(tmp_path: Path) -> None:
-    calls: list[tuple[BlockReady, str]] = []
-
-    def credit_fn(block: BlockReady, sid: str) -> CreditReceipt:
-        from plc_lab.tutor.credit import CreditReceipt
-
-        calls.append((block, sid))
-        return CreditReceipt(len(calls) == 1, 3, f"{sid}-b{block.block}", None)
-
+def test_minutes_are_credited_through_the_injected_writer(tmp_path: Path) -> None:
+    paid = FakeCredit()
     clock = ManualClock()
-    replies = [turn(check={"question": "Why?", "concept": "coil"})]
-    replies += [turn() for _ in range(5)]
-    replies += [turn(check_result={"passed": True, "feedback": "yes"})]
-    engine = make(tmp_path, FakeSession(*replies), clock, credit_fn=credit_fn)
+    fake = FakeSession(*[turn() for _ in range(7)])
+    engine = make(tmp_path, fake, clock, credit_fn=paid)
     asyncio.run(engine.start(CARD))
+    assert paid.calls == []  # the start turn releases nothing
     for _ in range(6):
         clock.advance(170)
         state = asyncio.run(engine.reply(ANSWER))
-    assert [b.block for b, _ in calls] == [1]
-    assert calls[0][1] == engine.session_id
-    assert state["credited_minutes"] == 45
-    assert state["receipts"] == [
-        {
-            "block": 1,
-            "recorded": True,
-            "units_today": 3,
-            "entry_id": f"{engine.session_id}-b1",
-            "error": None,
-        }
+    # One row per turn, carrying every minute that turn released.
+    assert paid.blocks == [
+        [1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [9, 10, 11],
+        [12, 13, 14],
+        [15, 16, 17],
     ]
-    assert any(e["type"] == "credit" for e in events(engine))
+    assert set(paid.sessions) == {engine.session_id}
+    assert state["credited_minutes"] == 17
+    assert state["session_credited_minutes"] == 17
+    assert len(state["receipts"]) == 6
+    assert state["receipts"][-1]["entry_id"] == f"{engine.session_id}-m17"
+    assert [e["type"] for e in events(engine)].count("credit") == 6
+
+
+def test_the_daily_total_shown_never_exceeds_the_target(tmp_path: Path) -> None:
+    paid = FakeCredit()
+    paid.total = 100  # the ledger already holds more than a day's cap
+    clock = ManualClock()
+    engine = make(tmp_path, FakeSession(turn(), turn()), clock, credit_fn=paid)
+    asyncio.run(engine.start(CARD))
+    clock.advance(70)
+    state = asyncio.run(engine.reply(ANSWER))
+    assert state["credited_minutes"] == 60
+    assert state["target_minutes"] == 60
+    assert state["session_credited_minutes"] == 1
+
+
+def test_a_refused_credit_counts_for_nothing(tmp_path: Path) -> None:
+    paid = FakeCredit(error="disk full")
+    clock = ManualClock()
+    engine = make(tmp_path, FakeSession(turn(), turn()), clock, credit_fn=paid)
+    asyncio.run(engine.start(CARD))
+    clock.advance(70)
+    state = asyncio.run(engine.reply(ANSWER))
+    assert state["credited_minutes"] == 0
+    assert state["session_credited_minutes"] == 0
+    assert state["receipts"][0]["error"] == "disk full"
+    assert state["receipts"][0]["recorded"] is False
 
 
 def test_close_stops_the_model_once(tmp_path: Path) -> None:

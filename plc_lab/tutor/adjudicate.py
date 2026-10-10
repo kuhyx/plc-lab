@@ -24,6 +24,7 @@ TERMS: Final = {
 }
 _ASKS: Final = re.compile(r"\b(tell me|say|write|describe|explain)\b", re.IGNORECASE)
 _VOLTS: Final = re.compile(r"24\s*V", re.IGNORECASE)
+MIN_UNCHECKED_BLOCK: Final = 15  # a credit this late with no pass is item g
 _MIN_TERMS: Final = 3  # key terms the diagnostic first turn must ask about
 _CONTEXT: Final = re.compile(
     r"\b(typical|typically|usual|usually|standard|machine[- ]tool)\b", re.IGNORECASE
@@ -52,7 +53,7 @@ def load(path: Path) -> list[dict[str, Any]]:
 
 
 def verdicts(events: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
-    """``(item, passed, evidence)`` for acceptance items (a)-(e)."""
+    """``(item, passed, evidence)`` for acceptance items (a)-(h)."""
     tutor = [e for e in events if e["type"] == "tutor"]
     first = tutor[0]["turn"]["message"] if tutor else ""
     seen_terms = [t for t, rx in TERMS.items() if re.search(rx, first, re.IGNORECASE)]
@@ -86,6 +87,14 @@ def verdicts(events: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
     ]
     image_titles = [i["title"] for i in images]
     low_turns = [i for i, e in enumerate(tutor) if e["turn"]["low_effort"]]
+    unchecked = [
+        e["block"]
+        for e in events
+        if e["type"] == "credit"
+        and e.get("recorded")
+        and e.get("checks_passed") == 0
+        and e["block"] >= MIN_UNCHECKED_BLOCK
+    ]
     return [
         (
             (
@@ -131,16 +140,62 @@ def verdicts(events: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
             any(e["turn"]["low_effort"] for e in tutor[1:]),
             f"low_effort turns: {low_turns}",
         ),
+        (
+            "g. credit recorded with no passed check after 15 active minutes",
+            bool(unchecked),
+            f"recorded credit rows with checks_passed == 0: units {unchecked}",
+        ),
+        (
+            "h. card_done is followed by Next card or Stop here",
+            _choice_follows_card_done(events),
+            "card_done turn, then a next_card or stop event",
+        ),
     ]
+
+
+def _choice_follows_card_done(events: list[dict[str, Any]]) -> bool:
+    """Some tutor turn has ``ui.card_done`` and each is followed by a choice."""
+    done_at = [
+        i
+        for i, e in enumerate(events)
+        if e["type"] == "tutor" and e.get("ui", {}).get("card_done")
+    ]
+    choices = [i for i, e in enumerate(events) if e["type"] in {"next_card", "stop"}]
+    return bool(done_at) and all(any(c > i for c in choices) for i in done_at)
+
+
+def message_indices(events: list[dict[str, Any]]) -> list[int]:
+    """The page-message index (``m<i>``) of each tutor turn, as the page counts.
+
+    A learner bubble precedes the tutor message it was answered by; a Next card
+    divider is a message of its own and drops a learner message that got no reply.
+    """
+    out: list[int] = []
+    count = 0
+    pending = False
+    for event in events:
+        kind = event["type"]
+        if kind == "learner":
+            pending = True
+        elif kind == "tutor":
+            count += int(pending)
+            pending = False
+            out.append(count)
+            count += 1
+        elif kind == "next_card":
+            pending = False
+            count += int(bool(event.get("ui")))  # only an in-session switch
+    return out
 
 
 def anchors(events: list[dict[str, Any]]) -> dict[str, str]:
     """Page anchors (``m<i>``) for the first picture, first diagram and last turn."""
     tutor = [e for e in events if e["type"] == "tutor"]
-    out = {"last": f"m{2 * (len(tutor) - 1)}"}
+    at = message_indices(events)
+    out = {"last": f"m{at[-1]}"}
     for name, key in (("image", "images"), ("diagram", "diagrams")):
         hit = next((i for i, e in enumerate(tutor) if e["ui"].get(key)), 0)
-        out[name] = f"m{2 * hit}"
+        out[name] = f"m{at[hit]}"
     return out
 
 

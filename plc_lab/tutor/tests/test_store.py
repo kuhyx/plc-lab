@@ -94,3 +94,18 @@ def test_log_appends_jsonl_lines(tmp_path: Path) -> None:
     assert [e["type"] for e in events] == ["start", "resume"]
     assert events[0]["text"] == "zażółć"
     assert events[0]["logged_at"]
+
+
+def test_unfinish_and_unarchive_of_unknown_ids_write_nothing(tmp_path: Path) -> None:
+    store = Store(tmp_path)
+    store.unfinish_card("nope")
+    store.unarchive("nope")
+    assert not store.progress_path.exists()
+
+
+def test_archive_twice_keeps_the_first_time(tmp_path: Path) -> None:
+    store = Store(tmp_path)
+    store.archive("s1")
+    first = store.archived()["s1"]
+    store.archive("s1")
+    assert store.archived() == {"s1": first}

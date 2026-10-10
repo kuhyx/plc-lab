@@ -8,21 +8,15 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from starlette.testclient import TestClient
 
-from plc_lab.tutor import credit, feedback
+from plc_lab.tutor import feedback
 from plc_lab.tutor.engine import Engine
 from plc_lab.tutor.server import create_app
 from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeSession, ManualClock, turn
+from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
-
-    from plc_lab.tutor.clock import BlockReady
-
-
-def paid(_block: BlockReady, sid: str) -> credit.CreditReceipt:
-    return credit.CreditReceipt(True, 1, f"{sid}-b1", None)
 
 
 @pytest.fixture
@@ -31,7 +25,7 @@ def engine(tmp_path: Path) -> Engine:
     return Engine(
         store=Store(tmp_path / "data"),
         now=ManualClock(),
-        credit_fn=paid,
+        credit_fn=FakeCredit(),
         session_factory=lambda _prompt: fake,
     )
 

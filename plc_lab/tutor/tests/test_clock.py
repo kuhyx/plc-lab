@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""The engagement clock: what counts, what does not, and when blocks release."""
+"""The engagement clock: what counts, what does not, and when units release."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ import json
 import pytest
 
 from plc_lab.tutor.clock import (
-    BLOCK_SECONDS,
     GENERATION_CAP,
     LOW_EFFORT,
-    MAX_BLOCKS,
+    MAX_UNITS,
     REPLY_TIMEOUT,
     STALLED,
     TUTOR_OVERDUE,
+    UNIT_SECONDS,
     BlockReady,
     EngagementClock,
     is_filler,
@@ -156,49 +156,70 @@ def test_backwards_time_earns_zero_without_raising() -> None:
     assert clock.active_seconds == 0
 
 
-def test_block_waits_for_a_passed_check() -> None:
+def test_a_minute_is_credited_without_any_passed_check() -> None:
+    # 2026-10-10: 21 active minutes credited nothing because no check passed.
     clock = EngagementClock(T0)
-    t = study(clock, T0, BLOCK_SECONDS)
+    t = study(clock, T0, UNIT_SECONDS)
+    (unit,) = clock.ready_blocks()
+    assert unit == BlockReady(1, UNIT_SECONDS, t, 0, 0)
     assert clock.ready_blocks() == []
-    assert clock.snapshot()["blocks_pending_check"] == 1
+    assert clock.snapshot()["blocks_earned"] == 1
+
+
+def test_each_minute_releases_one_unit() -> None:
+    clock = EngagementClock(T0)
+    t = study(clock, T0, 3 * UNIT_SECONDS)
+    units = clock.ready_blocks()
+    assert [u.block for u in units] == [1, 2, 3]
+    assert units[-1].ended_at == t
+    assert clock.ready_blocks() == []
+
+
+def test_one_long_accrual_strands_no_minute() -> None:
+    clock = EngagementClock(T0)
+    clock.tutor_message(T0)
+    clock.user_reply(T0 + 300, ANSWER, low_effort=False)
+    units = clock.ready_blocks()
+    assert [u.block for u in units] == [1, 2, 3, 4, 5]
+    assert all(u.active_seconds == 300 for u in units)
+
+
+def test_checks_are_tallied_on_the_units_but_never_gate() -> None:
+    clock = EngagementClock(T0)
+    t = study(clock, T0, UNIT_SECONDS)
     clock.check_result(t, passed=False)
-    assert clock.ready_blocks() == []
     clock.check_result(t + 1, passed=True)
-    (block,) = clock.ready_blocks()
-    assert block == BlockReady(1, BLOCK_SECONDS, t + 1, 1, 2)
+    t = study(clock, t + 1, UNIT_SECONDS)
+    first, second = clock.ready_blocks()
+    assert (first.checks_passed, first.checks_total) == (0, 0)
+    assert (second.checks_passed, second.checks_total) == (1, 2)
+
+
+def test_check_result_releases_a_unit_already_due() -> None:
+    clock = EngagementClock(T0)
+    study(clock, T0, UNIT_SECONDS)
+    clock.ready_blocks()
+    clock.check_result(T0 + 500, passed=True)
     assert clock.ready_blocks() == []
 
 
-def test_pass_before_threshold_releases_at_threshold() -> None:
+def test_dropped_check_makes_bare_yes_filler_again() -> None:
     clock = EngagementClock(T0)
-    clock.check_result(T0, passed=True)
-    t = study(clock, T0, BLOCK_SECONDS)
-    (block,) = clock.ready_blocks()
-    assert block.ended_at == t
-    assert (block.checks_passed, block.checks_total) == (1, 1)
+    clock.check_posed(T0)
+    clock.check_dropped()
+    clock.tutor_message(T0)
+    clock.user_reply(T0 + 20, "yes", low_effort=False)
+    assert clock.active_seconds == 0
+    assert clock.snapshot()["paused_reason"] == LOW_EFFORT
 
 
-def test_one_pass_cannot_earn_two_blocks() -> None:
+def test_never_more_than_max_units() -> None:
     clock = EngagementClock(T0)
-    clock.check_result(T0, passed=True)
-    t = study(clock, T0, 2 * BLOCK_SECONDS)
-    assert [b.block for b in clock.ready_blocks()] == [1]
-    snap = clock.snapshot()
-    assert (snap["blocks_earned"], snap["blocks_pending_check"]) == (1, 1)
-    clock.check_result(t, passed=True)
-    assert [b.block for b in clock.ready_blocks()] == [2]
-
-
-def test_never_more_than_max_blocks() -> None:
-    clock = EngagementClock(T0)
-    t = T0
-    for _ in range(MAX_BLOCKS + 2):
-        clock.check_result(t, passed=True)
-        t = study(clock, t, BLOCK_SECONDS)
-    blocks = clock.ready_blocks()
-    assert [b.block for b in blocks] == list(range(1, MAX_BLOCKS + 1))
-    assert clock.snapshot()["blocks_pending_check"] == 0
-    assert clock.active_seconds == (MAX_BLOCKS + 2) * BLOCK_SECONDS
+    study(clock, T0, (MAX_UNITS + 2) * UNIT_SECONDS)
+    units = clock.ready_blocks()
+    assert [u.block for u in units] == list(range(1, MAX_UNITS + 1))
+    assert clock.snapshot()["blocks_earned"] == MAX_UNITS
+    assert clock.active_seconds == (MAX_UNITS + 2) * UNIT_SECONDS
 
 
 def test_snapshot_is_json_and_sees_live_pauses() -> None:
@@ -219,7 +240,6 @@ def test_snapshot_is_json_and_sees_live_pauses() -> None:
     assert set(json.loads(json.dumps(clock.snapshot()))) == {
         "active_seconds",
         "blocks_earned",
-        "blocks_pending_check",
         "paused",
         "paused_reason",
     }

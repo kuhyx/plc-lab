@@ -19,6 +19,7 @@ from starlette.staticfiles import StaticFiles
 
 from plc_lab.tutor import diagrams, feedback, feedback_snapshot, images
 from plc_lab.tutor.engine import Engine
+from plc_lab.tutor.routes_sessions import session_routes
 from plc_lab.tutor.session import SessionError
 
 if TYPE_CHECKING:
@@ -96,6 +97,7 @@ def create_app(
         Route("/api/cards", cards),
         Route("/api/start", start, methods=["POST"]),
         Route("/api/message", message, methods=["POST"]),
+        *session_routes(eng, _guard, _json),
         Route("/api/feedback", _feedback_route(eng), methods=["POST"]),
         Route("/media/{name}", media),
         Mount("/static", _RevalidatedStatic(directory=STATIC)),

@@ -66,16 +66,20 @@ function figure(img) {
   return fig;
 }
 
-function renderMessage(m, i) {
+// readOnly: a past session's transcript; ⚑ Report only targets live messages.
+function renderMessage(m, i, readOnly = false) {
+  if (m.role === "card") return el("div", "card-divider", `Next card: ${m.text}`);
   const box = el("article", `msg ${m.role}`);
   if (m.role === "tutor") {
     const head = el("div", "msg-head");
     head.append(el("div", "tag", m.low_effort ? "Tutor (last reply was low effort)" : "Tutor"));
-    const flag = el("button", "flag", "⚑ Report");
-    flag.type = "button";
-    flag.title = "Report a problem with this message (for the developer, not the tutor)";
-    flag.addEventListener("click", () => openReport(i));
-    head.append(flag);
+    if (!readOnly) {
+      const flag = el("button", "flag", "⚑ Report");
+      flag.type = "button";
+      flag.title = "Report a problem with this message (for the developer, not the tutor)";
+      flag.addEventListener("click", () => openReport(i));
+      head.append(flag);
+    }
     box.append(head);
   }
   box.append(markdown(m.text));
@@ -90,55 +94,63 @@ function renderMessage(m, i) {
     box.append(c);
   }
   if (m.check) box.append(el("div", "check", `Comprehension check: ${m.check.question}`));
+  if (m.card_done) box.append(el("div", "check pass", "Card done ✓"));
   return box;
+}
+
+// One session's messages into #log; lastCount = 0 (a view switch) re-scrolls.
+function renderLog(messages, readOnly) {
+  const log = $("log");
+  const keep = log.scrollTop;
+  log.replaceChildren(...messages.map((m, i) => {
+    const n = renderMessage(m, i, readOnly);
+    n.id = `m${i}`; n.style.marginBottom = "16px";
+    n.classList.toggle("flagged", !readOnly && reportIndex === i);
+    return n;
+  }));
+  log.scrollTop = keep;
+  const anchor = hashAnchor() && $(hashAnchor());  // #m14 or #<id>/m14
+  if (anchor && lastCount === 0) anchor.scrollIntoView();
+  else if (messages.length !== lastCount) log.scrollTop = log.scrollHeight;
+  lastCount = messages.length;
 }
 
 function render(s) {
   lastState = s;
-  const log = $("log");
-  const keep = log.scrollTop;
-  log.replaceChildren(...s.messages.map((m, i) => {
-    const n = renderMessage(m, i);
-    n.id = `m${i}`; n.style.marginBottom = "16px";
-    n.classList.toggle("flagged", reportIndex === i);
-    return n;
-  }));
+  // Today's counter updates in every view; the chat only in the live one.
+  $("mastered").replaceChildren(...s.mastered.map((c) => el("li", "", c)));
+  $("credited").textContent = `Credited ${s.credited_minutes}/${s.target_minutes} min`;
+  $("meter-fill").style.width = `${Math.min(100, (100 * s.credited_minutes) / (s.target_minutes || 60))}%`;
+  const c = s.clock || {};
+  $("paused").hidden = !c.paused;
+  if (c.paused) $("paused").textContent = `Clock paused: ${c.paused_reason}`;
+  // Receipts arrive every credited minute: only a failed one is worth a pill.
+  s.receipts.forEach((r) => {
+    if (seen.has(r.entry_id)) return;
+    seen.add(r.entry_id);
+    if (r.recorded) return;
+    $("toast").hidden = false;
+    $("toast").textContent = `Credit NOT recorded: ${r.error}`;
+  });
+  if (!liveView(s)) return;  // a read-only past session stays on screen
+  renderLog(s.messages, false);
   const started = Boolean(s.session_id);
   if (s.session_id !== sessionId) {
     sessionId = s.session_id;
+    refreshHistory();
     if (started && !$("text").value) {
       $("text").value = localStorage.getItem(draftKey()) || "";
       requestAnimationFrame(fitText);  // after the composer is unhidden
     }
   }
+  const choosing = started && Boolean(s.card_done) && !picking;  // Next card / Stop here
   $("empty").hidden = started && !picking;
   $("switch").hidden = !started || picking;
-  $("composer").hidden = !started;
+  $("mark-done").hidden = !started || picking || !s.card || Boolean(s.card_done);
+  $("composer").hidden = !started || choosing;
+  $("card-end").hidden = !choosing;
   $("card").textContent = s.card ? s.card.front : "-";
-  $("mastered").replaceChildren(...s.mastered.map((c) => el("li", "", c)));
-  $("credited").textContent = `Credited ${s.credited_minutes}/${s.target_minutes} min`;
-  [...$("blocks").children].forEach((b, i) => b.classList.toggle("on", (i + 1) * 15 <= s.credited_minutes));
-  const c = s.clock || {};
-  if (started) {
-    const mins = ((c.active_seconds || 0) / 60).toFixed(1);
-    const pend = c.blocks_pending_check ? " - 15 min reached, waiting for a passed check" : "";
-    $("active").textContent = `Active ${mins} min${pend}`;
-  }
-  $("paused").hidden = !c.paused;
-  if (c.paused) $("paused").textContent = `Clock paused: ${c.paused_reason}`;
-  s.receipts.forEach((r) => {
-    if (seen.has(r.entry_id)) return;
-    seen.add(r.entry_id);
-    const toast = $("toast");
-    toast.hidden = false;
-    toast.className = r.recorded ? "pill pill-ok" : "pill pill-warn";
-    toast.textContent = r.recorded ? "🎮 +15 min recorded" : `Credit NOT recorded: ${r.error}`;
-  });
-  log.scrollTop = keep;
-  const anchor = location.hash && document.querySelector(location.hash);
-  if (anchor && lastCount === 0) anchor.scrollIntoView();
-  else if (s.messages.length !== lastCount) log.scrollTop = log.scrollHeight;
-  lastCount = s.messages.length;
+  $("active").textContent = started ? clockStatus(s) : "Not started";
 }
 async function api(path, body) {
   $("busy").hidden = false; $("error").hidden = true;
@@ -158,7 +170,9 @@ async function api(path, body) {
 $("start").addEventListener("click", async () => {
   if (await api("/api/start", { card_id: $("cards").value || null })) picking = false;
 });
-$("switch").addEventListener("click", () => { picking = true; $("empty").hidden = false; $("switch").hidden = true; });
+$("switch").addEventListener("click", () => {
+  picking = true; $("empty").hidden = false; $("switch").hidden = true; $("mark-done").hidden = true;
+});
 // Grow the answer box with its text; CSS caps it (max-height) and it scrolls.
 // Never below its six-row start, so an empty box keeps its size.
 let minTextHeight = 0;

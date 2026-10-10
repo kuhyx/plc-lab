@@ -9,16 +9,14 @@ from typing import TYPE_CHECKING, Any
 
 import earned_time
 
-from plc_lab.tutor import credit
 from plc_lab.tutor.engine import Engine
+from plc_lab.tutor.ledger_io import default_paths
 from plc_lab.tutor.store import Store
-from plc_lab.tutor.tests._fakes import FakeSession, ManualClock, turn
+from plc_lab.tutor.tests._fakes import FakeCredit, FakeSession, ManualClock, turn
 from plc_lab.tutor.tests.conftest import KEY
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    from plc_lab.tutor.clock import BlockReady
 
 CARD = "io-24vdc-relay-coil"
 ANSWER = "the coil becomes a magnet and pulls the contact closed"
@@ -33,19 +31,19 @@ def make(tmp_path: Path, fake: FakeSession, clock: ManualClock, **kw: Any) -> En
     )
 
 
-def study_to_a_block(engine: Engine, clock: ManualClock) -> dict[str, Any]:
-    """Six 170 s answers with a check posed first and passed last."""
+def study_to_17_minutes(engine: Engine, clock: ManualClock) -> dict[str, Any]:
+    """Six 170 s answers: 1020 active seconds, 17 minutes."""
     for _ in range(6):
         clock.advance(170)
         state = asyncio.run(engine.reply(ANSWER, msg_id=f"m{clock.t}"))
     return state
 
 
-def block_script() -> list[Any]:
+def script() -> list[Any]:
+    """The start turn poses a check; the first answer passes it."""
     replies: list[Any] = [turn(check={"question": "Why?", "concept": "coil"})]
-    replies += [turn() for _ in range(5)]
     replies.append(turn(check_result={"passed": True, "feedback": "yes"}))
-    return replies
+    return replies + [turn() for _ in range(5)]
 
 
 def test_nothing_to_resume(tmp_path: Path) -> None:
@@ -87,54 +85,89 @@ def test_resume_skips_a_card_no_longer_in_the_deck(tmp_path: Path) -> None:
     assert make(tmp_path, FakeSession(), clock).resume_latest() is False
 
 
-def test_unlogged_block_is_credited_on_resume(tmp_path: Path) -> None:
-    calls: list[int] = []
-
-    def refuse(block: BlockReady, sid: str) -> credit.CreditReceipt:
-        calls.append(block.block)
-        return credit.CreditReceipt(False, 0, f"{sid}-b{block.block}", "disk full")
-
+def test_unlogged_minutes_are_credited_on_resume(tmp_path: Path) -> None:
     clock = ManualClock()
-    first = make(tmp_path, FakeSession(*block_script()), clock, credit_fn=refuse)
+    first = make(
+        tmp_path, FakeSession(*script()), clock, credit_fn=FakeCredit(error="disk full")
+    )
     asyncio.run(first.start(CARD))
-    state = study_to_a_block(first, clock)
-    assert calls == [1]
+    state = study_to_17_minutes(first, clock)
     assert state["credited_minutes"] == 0  # a refused credit counts for nothing
     path = tmp_path / "data/sessions" / f"{first.session_id}.jsonl"
     kept = [line for line in path.read_text().splitlines() if '"credit"' not in line]
     path.write_text("\n".join(kept) + "\n")
 
-    second = make(tmp_path, FakeSession(), clock, credit_fn=refuse)
+    retry = FakeCredit(error="disk full")
+    second = make(tmp_path, FakeSession(), clock, credit_fn=retry)
     assert second.resume_latest() is True
-    assert calls == [1, 1]
+    assert retry.blocks == [list(range(1, 18))]  # the whole session, one row
     assert second.receipts[-1]["error"] == "disk full"
+    assert '"type": "credit"' in path.read_text()
 
 
-def test_resume_restores_units_from_recorded_receipts(tmp_path: Path) -> None:
+def test_resume_restores_the_minutes_the_ledger_pays(tmp_path: Path) -> None:
     clock = ManualClock()
-    first = make(tmp_path, FakeSession(*block_script()), clock)
+    first = make(tmp_path, FakeSession(*script()), clock)
     asyncio.run(first.start(CARD))
-    assert study_to_a_block(first, clock)["credited_minutes"] == 15
+    assert study_to_17_minutes(first, clock)["credited_minutes"] == 17
+    ledger = default_paths().ledger
+    before = json.loads(ledger.read_text())["entries"]
     second = make(tmp_path, FakeSession(), clock)
     assert second.resume_latest() is True
-    assert second.state()["credited_minutes"] == 15
+    state = second.state()
+    assert state["credited_minutes"] == 17
+    assert state["session_credited_minutes"] == 17
+    assert len(state["receipts"]) == 6  # nothing re-credited: the ledger had it
+    assert json.loads(ledger.read_text())["entries"] == before
 
 
-def test_default_writer_signs_the_row_with_the_key(tmp_path: Path) -> None:
+def test_default_writer_signs_a_row_per_turn_with_the_key(tmp_path: Path) -> None:
     """The real credit path, sandboxed by conftest: signed, verified, read back."""
     clock = ManualClock()
-    engine = make(tmp_path, FakeSession(*block_script()), clock)
+    engine = make(tmp_path, FakeSession(*script()), clock)
     asyncio.run(engine.start(CARD))
-    state = study_to_a_block(engine, clock)
-    receipt = state["receipts"][0]
-    assert receipt["recorded"] is True
-    assert receipt["error"] is None
-    ledger = credit.default_paths().ledger
+    state = study_to_17_minutes(engine, clock)
+    assert [r["recorded"] for r in state["receipts"]] == [True] * 6
+    assert {r["error"] for r in state["receipts"]} == {None}
+    ledger = default_paths().ledger
     assert ledger.parent == tmp_path / "data"
-    (row,) = json.loads(ledger.read_text())["entries"]
-    unsigned = {k: v for k, v in row.items() if k != "hmac"}
-    assert row["hmac"] == earned_time.entry_signature(unsigned, KEY)
-    assert earned_time.verified(row, KEY)
-    assert row["entry_id"] == f"{engine.session_id}-b1"
-    assert row["created_at"] == clock.t
-    assert row["detail"]["checks_passed"] == 1
+    rows = json.loads(ledger.read_text())["entries"]
+    for row in rows:
+        unsigned = {k: v for k, v in row.items() if k != "hmac"}
+        assert row["hmac"] == earned_time.entry_signature(unsigned, KEY)
+        assert earned_time.verified(row, KEY)
+    sid = engine.session_id
+    assert [r["entry_id"] for r in rows] == [
+        f"{sid}-m{n}" for n in (2, 5, 8, 11, 14, 17)
+    ]
+    assert sum(r["detail"]["minutes"] for r in rows) == 17
+    assert rows[-1]["created_at"] == clock.t
+    assert [r["detail"]["checks_passed"] for r in (rows[0], rows[-1])] == [0, 1]
+
+
+def test_repair_marks_the_cards_a_tutor_finished(tmp_path: Path) -> None:
+    engine = make(tmp_path, FakeSession(), ManualClock())
+    engine.store.log("sess", {"type": "start", "card": CARD})
+    engine.store.log("sess", {"type": "tutor", "turn": {"card_done": True}})
+    assert engine.repair_done_cards() == [(CARD, "sess")]
+    assert next(c for c in engine.cards() if c["id"] == CARD)["done"] is True
+    assert engine.repair_done_cards() == []  # once per data dir
+
+
+def test_backfill_credits_what_todays_transcripts_earned(tmp_path: Path) -> None:
+    clock = ManualClock()
+    first = make(
+        tmp_path, FakeSession(*script()), clock, credit_fn=FakeCredit(error="down")
+    )
+    asyncio.run(first.start(CARD))
+    study_to_17_minutes(first, clock)
+    paid = FakeCredit()
+    second = make(tmp_path, FakeSession(), clock, credit_fn=paid)
+    second.backfill_today()
+    assert paid.blocks == [list(range(1, 18))]
+    assert paid.sessions == [first.session_id]
+    assert second.minutes_today == 17
+    path = tmp_path / "data/sessions" / f"{first.session_id}.jsonl"
+    assert path.read_text().count('"recorded": true') == 1
+    make(tmp_path / "empty", FakeSession(), clock, credit_fn=paid).backfill_today()
+    assert len(paid.calls) == 1

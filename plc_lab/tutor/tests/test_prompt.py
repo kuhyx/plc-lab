@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from plc_lab.cards import Card, Topic
+from plc_lab.tutor.conversation import MAX_CHECK_ATTEMPTS
 from plc_lab.tutor.prompt import (
     CHECK_EVERY_SECONDS,
     engine_note,
@@ -39,6 +40,15 @@ def test_system_prompt_lists_mastered_concepts() -> None:
     assert "(none yet)" not in text
 
 
+def test_a_check_question_is_never_repeated_in_the_message() -> None:
+    # 2026-10-10: the model put the question in both `message` and `check`,
+    # and the page printed it twice.
+    text = " ".join(system_prompt(CARD, []).split())
+    assert "`message` must NOT state or paraphrase the question" in text
+    assert "put the whole question only in `check.question`" in text
+    assert "its question appears only there, never also in `message`" in text
+
+
 def test_image_check_labels_each_picture() -> None:
     head, ask = image_check(["search term 'a', file 'x.jpg'", "search term 'b'"])
     assert "picture 1: search term 'a', file 'x.jpg'" in head
@@ -68,8 +78,16 @@ def test_engine_note_check_open_suppresses_due_and_adds_notes() -> None:
         30, CHECK_EVERY_SECONDS, check_open=True, notes=["images_shown: 1", "extra"]
     )
     assert "check_due: no" in note
-    assert "check_open: yes - grade the learner answer in check_result" in note
+    assert "check_open: yes - attempt 1 of 2: grade the learner's answer" in note
+    assert "re-pose the SAME core question in `check`" in note
     assert note.endswith("images_shown: 1\nextra\n[/engine note]")
+
+
+def test_engine_note_last_attempt_closes_the_check() -> None:
+    note = engine_note(30, 0, check_open=True, notes=[], attempt=MAX_CHECK_ATTEMPTS)
+    assert f"attempt {MAX_CHECK_ATTEMPTS} of {MAX_CHECK_ATTEMPTS}, the last" in note
+    assert "do NOT pose it again" in note
+    assert "re-pose" not in note
 
 
 def test_wrap_learner_fences_the_words() -> None:

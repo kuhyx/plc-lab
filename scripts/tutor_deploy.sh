@@ -118,12 +118,22 @@ smoke_test() {
         echo "Smoke test: expected session '$expected', release resumed '$got'" >&2
         exit 1
     fi
-    # index.html loads all three; a missing one leaves the page blank.
-    local script
-    for script in app.js report.js net.js; do
+    # Every script the served page loads, read from its own <script> tags so a
+    # new file is checked without editing this list; a missing or unparsable
+    # one leaves the page blank.
+    local script scripts
+    curl -sf -m 5 "http://127.0.0.1:$port/" >"$TEMP_DIR/index.html"
+    mapfile -t scripts < <(grep -o 'src="/static/[A-Za-z0-9_.-]*\.js"' \
+        "$TEMP_DIR/index.html" | sed 's|^src="/static/||; s|"$||')
+    if ((${#scripts[@]} == 0)); then
+        echo "Smoke test: the page loads no /static/*.js" >&2
+        exit 1
+    fi
+    for script in "${scripts[@]}"; do
         curl -sf -m 5 "http://127.0.0.1:$port/static/$script" >"$TEMP_DIR/$script"
         node --check "$TEMP_DIR/$script"
     done
+    echo "Smoke test: node --check ok for ${scripts[*]}"
     curl -sf -m 5 "http://127.0.0.1:$port/api/cards" | jq -e 'length > 0' >/dev/null
     kill "$SMOKE_PID"
     SMOKE_PID=""

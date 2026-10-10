@@ -44,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     engine = Engine(simulated_time=args.simulate_time)
+    for card, sid in engine.repair_done_cards():
+        print(f"marked {card} done from {sid}", file=sys.stderr)
+    engine.backfill_today()
     if not args.fresh and engine.resume_latest():
         print(f"resumed session {engine.session_id}", file=sys.stderr)
     app = create_app(engine)

@@ -24,6 +24,7 @@ def state(
     *,
     done: bool = False,
     recorded: bool = False,
+    check_open: bool = False,
     tutor: str = "Tutor says hi",
     **message: Any,
 ) -> dict[str, Any]:
@@ -31,6 +32,7 @@ def state(
     return {
         "messages": [{"text": tutor, "card_done": done, **message}],
         "receipts": [{"recorded": recorded}],
+        "check_open": check_open,
         "session_id": "sess-1",
         "credited_minutes": 10,
         "target_minutes": 20,
@@ -50,6 +52,8 @@ class Api:
     def __call__(self, url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
         self.calls.append((url, body))
         self.events.append("call")
+        if url.endswith("/api/stop"):
+            return {}  # the stopped state is empty; the run returns the one before
         return self.states.pop(0)
 
 
@@ -97,6 +101,7 @@ def test_stops_when_card_done_and_a_block_is_recorded(
         ("http://t/api/start", {"card_id": "card-1"}),
         ("http://t/api/message", {"text": "learner reply 1", "advance_s": 55.0}),
         ("http://t/api/message", {"text": "learner reply 2", "advance_s": 55.0}),
+        ("http://t/api/stop", {}),
     ]
     learner = fake_learner.instances[0]
     assert learner.closed == 1
@@ -124,6 +129,17 @@ def test_forced_filler_turns_and_max_turns_exhaustion(
     ]
     assert len(fake_learner.instances[0].prompts) == 5
     assert not api.states
+
+
+def test_first_answer_to_an_open_check_is_the_wrong_attempt(
+    monkeypatch: pytest.MonkeyPatch, fake_learner: type[FakeLearner]
+) -> None:
+    api = Api(*[state(check_open=True) for _ in range(3)])
+    monkeypatch.setattr(scripted, "_call", api)
+    run(api, 2)
+    sent = [body["text"] for _, body in api.calls[1:] if body]
+    assert sent == [scripted.WRONG_FIRST, "learner reply 1"]
+    assert len(fake_learner.instances[0].prompts) == 1
 
 
 def test_learner_prompt_carries_tutor_words_and_page_notes(
@@ -154,7 +170,7 @@ def test_hook_runs_at_the_hook_turn_before_the_message(
     monkeypatch.setattr(subprocess, "run", fake_run)
     run(api, 3, hook=(1, "echo shot"))
     assert runs == [(["/bin/bash", "-c", "echo shot"], False)]
-    assert events == ["call", "call", "hook", "call", "call"]
+    assert events == ["call", "call", "hook", "call", "call", "call"]
 
 
 def test_page_notes_images_and_diagrams() -> None:

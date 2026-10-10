@@ -67,6 +67,41 @@ class Store:
         data["cards_done"][card_id] = {"at": _now(), "session": session_id}
         self._save(data)
 
+    def unfinish_card(self, card_id: str) -> None:
+        """Take a card back out of the done set (the manual override)."""
+        data = self.progress()
+        if data["cards_done"].pop(card_id, None) is not None:
+            self._save(data)
+
+    def archived(self) -> dict[str, dict[str, str]]:
+        """Sessions hidden from History by hand: id -> ``{"at": iso}``."""
+        found = self.progress().get("archived", {})
+        return found if isinstance(found, dict) else {}
+
+    def archive(self, session_id: str) -> None:
+        """Hide a session from History; its transcript and credit stay as-is."""
+        data = self.progress()
+        archived = data.setdefault("archived", {})
+        if session_id not in archived:  # re-archiving keeps the first time
+            archived[session_id] = {"at": _now()}
+            self._save(data)
+
+    def unarchive(self, session_id: str) -> None:
+        """Show an archived session in History again."""
+        data = self.progress()
+        if data.get("archived", {}).pop(session_id, None) is not None:
+            self._save(data)
+
+    def repaired(self, name: str) -> bool:
+        """Whether the one-off repair ``name`` already ran on this data dir."""
+        return bool(self.progress().get("repairs", {}).get(name))
+
+    def mark_repaired(self, name: str) -> None:
+        """Remember that repair ``name`` ran, so a later restart skips it."""
+        data = self.progress()
+        data.setdefault("repairs", {})[name] = _now()
+        self._save(data)
+
     def log(self, session_id: str, event: dict[str, Any]) -> None:
         """Append one event to the session transcript."""
         path = self.root / "sessions" / f"{session_id}.jsonl"

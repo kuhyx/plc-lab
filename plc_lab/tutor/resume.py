@@ -6,7 +6,9 @@ restart mid-session wiped one). Everything the engine keeps in memory is
 rebuilt from ``sessions/<id>.jsonl``: the messages, the check state, the
 receipts, and the engagement clock, which is replayed event by event at the
 logged times. The model process itself cannot be resumed, so the next model
-call is primed with the transcript instead (:func:`primer`).
+call is primed with the transcript since the last card switch (:func:`primer`).
+A ``stop`` event marks the session finished: it is replayed (history shows it)
+but never resumed.
 """
 
 from __future__ import annotations
@@ -32,7 +34,8 @@ class Replayed:
     """The engine's in-memory state, rebuilt from one transcript."""
 
     conversation: Conversation
-    # Blocks the clock earned whose credit row never made it into the log.
+    # Every unit (active minute) the replayed clock earned. Which of them the
+    # ledger already pays is the ledger's to say (``credit_units`` asks it).
     unrecorded: list[BlockReady] = field(default_factory=list)
 
 
@@ -76,6 +79,36 @@ def _ui(turn: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _replay_tutor(
+    conv: Conversation, event: dict[str, Any], pending: dict[str, Any] | None
+) -> None:
+    """One logged tutor turn, with the learner message it answered (if any)."""
+    turn = event.get("turn") or {}
+    t = _time(event)
+    if pending is not None:
+        text = str(pending.get("text", ""))
+        low = bool(turn.get("low_effort"))
+        conv.clock.user_reply(_time(pending), text, low_effort=low)
+        conv.messages.append({"role": "learner", "text": text})
+        conv.resumed.answered_id = str(pending.get("msg_id", ""))
+    conv.clock.tutor_message(t)
+    conv.apply_checks(turn, t)
+    ui = event.get("ui") or _ui(turn)
+    if turn.get("card_done") or ui.get("card_done"):
+        conv.mark_card_done()
+    conv.messages.append(ui)
+
+
+def _replay_next_card(conv: Conversation, event: dict[str, Any]) -> None:
+    """Replay a Next card choice.
+
+    With a ``ui`` divider it is an old in-session switch; without one the next
+    card got its own session and the event only records the choice.
+    """
+    if ui := event.get("ui"):
+        conv.switch_card(str(event.get("card", "")), str(ui.get("text", "")))
+
+
 def replay(path: Path) -> Replayed | None:
     """Rebuild the state from ``path``; ``None`` if nothing resumable is in it.
 
@@ -97,32 +130,31 @@ def replay(path: Path) -> Replayed | None:
         if kind == "learner":
             pending = event
         elif kind == "tutor":
-            turn = event.get("turn") or {}
-            t = _time(event)
-            if pending is not None:
-                text = str(pending.get("text", ""))
-                low = bool(turn.get("low_effort"))
-                conv.clock.user_reply(_time(pending), text, low_effort=low)
-                conv.messages.append({"role": "learner", "text": text})
-                conv.answered_id = str(pending.get("msg_id", ""))
-                pending = None
-            conv.clock.tutor_message(t)
-            conv.apply_checks(turn, t)
-            conv.messages.append(event.get("ui") or _ui(turn))
+            _replay_tutor(conv, event, pending)
+            pending = None
+        elif kind == "next_card":
+            pending = None  # a failed reply belongs to the card left behind
+            _replay_next_card(conv, event)
+        elif kind == "card_done_manual":
+            conv.set_done(str(event.get("card", "")), done=bool(event.get("done")))
+        elif kind == "stop":
+            conv.stopped, pending = True, None
         elif kind == "credit":
             row = {k: v for k, v in event.items() if k not in {"type", "logged_at"}}
             conv.receipts.append(row)
     if not conv.messages:
         return None
-    logged = {r.get("block") for r in conv.receipts}
-    fresh = conv.clock.ready_blocks()
-    return Replayed(conv, [b for b in fresh if b.block not in logged])
+    return Replayed(conv, conv.clock.ready_blocks())
 
 
 def primer(messages: list[dict[str, Any]]) -> str:
     """The note that hands a fresh model process the conversation so far."""
     lines = []
-    for message in messages:
+    # Only the current card: the fresh process was never told about earlier ones.
+    last = max(
+        (i for i, m in enumerate(messages) if m.get("role") == "card"), default=-1
+    )
+    for message in messages[last + 1 :]:
         text = str(message.get("text", ""))
         if message.get("role") == "learner":
             lines.append(
@@ -147,7 +179,7 @@ def reprime(conv: Conversation, restarts: int) -> None:
     Assigned, not appended: a retry that crashes again still sends one copy.
     The current learner text is not in ``messages`` yet, so it is not doubled.
     """
-    if restarts > conv.restarts_seen:
-        conv.restarts_seen = restarts
+    if restarts > conv.resumed.restarts_seen:
+        conv.resumed.restarts_seen = restarts
         if conv.messages:
-            conv.resume_note = primer(conv.messages)
+            conv.resumed.note = primer(conv.messages)

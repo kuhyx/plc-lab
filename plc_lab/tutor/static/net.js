@@ -1,6 +1,7 @@
 "use strict";
 // Server calls: retry through a restart, paste-back errors, the state poll
-// and startup. Loaded last (after app.js and report.js; see index.html).
+// and startup. Loaded last (after app.js, session.js, history.js,
+// report.js and wheel.js; see index.html).
 
 // A failed call carries everything needed to paste it back to Claude: the
 // request, the HTTP status, the server's traceback, or the fact that nothing
@@ -86,16 +87,13 @@ async function poll() {
 
 (async () => {
   try {
-    const cards = await call("/api/cards");
-    $("cards").replaceChildren(
-      el("option", "", "Next unfinished card"),
-      ...cards.map((c) => { const o = el("option", "", `${c.done ? "[done] " : ""}${c.topic}: ${c.front}`); o.value = c.id; return o; }),
-    );
-    $("cards").firstChild.value = "";
+    await loadCards();  // history.js
     render(await call("/api/state"));
   } catch (err) {
     showError(err, true);
   }
+  refreshHistory();
+  await openHash();  // "#<id>" of a past session opens it read-only
   // The poll also notices a server that died after the page loaded.
   setInterval(poll, 5000);
 })();

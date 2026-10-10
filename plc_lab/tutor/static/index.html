@@ -9,13 +9,14 @@
 <body>
 <header class="bar">
   <h1>Automation tutor</h1>
+  <span id="session-id" class="muted session-id" title="Session id: #&lt;id&gt; in the URL reopens it"></span>
   <div id="counter" class="counter" aria-live="polite">
     <span id="credited">Credited 0/60 min</span>
-    <span id="blocks" class="blocks"><i></i><i></i><i></i><i></i></span>
+    <span class="meter" aria-hidden="true"><i id="meter-fill"></i></span>
   </div>
   <div id="active" class="muted">Not started</div>
   <div id="paused" class="pill pill-warn" hidden></div>
-  <div id="toast" class="pill pill-ok" hidden></div>
+  <div id="toast" class="pill pill-warn" hidden></div>
   <button id="report-open" type="button" class="ghost" title="Tell the developer something is wrong (not sent to the tutor)">Report a problem</button>
 </header>
 <main class="layout">
@@ -25,7 +26,19 @@
       <select id="cards" aria-label="Card"></select>
       <button id="start" class="primary">Start session</button>
     </div>
+    <div id="past" class="check banner" hidden>
+      <span id="past-title"></span>
+      <b id="past-archived" class="pill pill-muted" hidden></b>
+      <button id="past-archive" type="button" hidden></button>
+      <button id="repeat" type="button" class="primary">Repeat</button>
+      <button id="back-live" type="button">Back to live</button>
+    </div>
     <div id="log"></div>
+    <div id="card-end" class="check pass banner" hidden>
+      <span>Card done ✓</span>
+      <button id="next-card" type="button" class="primary">Next card</button>
+      <button id="stop-here" type="button">Stop here</button>
+    </div>
     <div id="busy" class="muted" hidden>Tutor is thinking...</div>
     <div id="error" class="error" hidden>
       <p id="error-summary"></p>
@@ -78,14 +91,25 @@
   </section>
   <aside class="side" aria-label="Progress">
     <h2>Target card</h2>
-    <p id="card" class="muted">-</p>
-    <button id="switch" type="button" hidden>Switch card</button>
+    <div id="card" class="muted">-</div>
+    <div class="side-actions">
+      <button id="switch" type="button" hidden>Switch card</button>
+      <button id="mark-done" type="button" hidden title="Count this card as done; then choose Next card or Stop here">Mark card done</button>
+    </div>
     <h2>Mastered</h2>
     <ul id="mastered" class="muted"></ul>
+    <h2>History</h2>
+    <ul id="history" class="history"></ul>
+    <button id="archived-toggle" type="button" class="small archived-toggle" hidden></button>
+    <ul id="history-archived" class="history" hidden aria-label="Archived sessions"></ul>
   </aside>
 </main>
+<!-- Order matters: one shared global scope; net.js does startup, so it is last. -->
 <script src="/static/app.js"></script>
+<script src="/static/session.js"></script>
+<script src="/static/history.js"></script>
 <script src="/static/report.js"></script>
+<script src="/static/wheel.js"></script>
 <script src="/static/net.js"></script>
 </body>
 </html>

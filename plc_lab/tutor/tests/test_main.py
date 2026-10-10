@@ -20,13 +20,21 @@ class FakeEngine:
     """Records construction and answers ``resume_latest`` as scripted."""
 
     resumes = True
+    repaired: ClassVar[list[tuple[str, str]]] = []
     built: ClassVar[list[FakeEngine]] = []
 
     def __init__(self, *, simulated_time: bool = False) -> None:
         self.simulated_time = simulated_time
         self.resume_calls = 0
+        self.backfills = 0
         self.session_id = "20261009-sess"
         FakeEngine.built.append(self)
+
+    def repair_done_cards(self) -> list[tuple[str, str]]:
+        return FakeEngine.repaired
+
+    def backfill_today(self) -> None:
+        self.backfills += 1
 
     def resume_latest(self) -> bool:
         self.resume_calls += 1
@@ -54,6 +62,7 @@ def served(monkeypatch: pytest.MonkeyPatch) -> Recorder:
     rec = Recorder()
     FakeEngine.built = []
     FakeEngine.resumes = True
+    FakeEngine.repaired = []
     monkeypatch.setattr(tutor_main, "_port_busy", lambda _port: False)
     monkeypatch.setattr(tutor_main, "Engine", FakeEngine)
     monkeypatch.setattr(tutor_main, "create_app", rec.create_app)
@@ -86,6 +95,19 @@ def test_serves_on_localhost_and_reports_resume(
     assert served.apps == [engine]
     assert engine.simulated_time is False
     assert engine.resume_calls == 1
+    assert engine.backfills == 1
+    assert "marked" not in err
+
+
+def test_reports_each_card_repaired_as_done(
+    served: Recorder, capsys: pytest.CaptureFixture[str]
+) -> None:
+    FakeEngine.repaired = [("card-a", "20261009-s1"), ("card-b", "20261008-s2")]
+    assert tutor_main.main(["--port", "18999"]) == 0
+    err = capsys.readouterr().err
+    assert "marked card-a done from 20261009-s1" in err
+    assert "marked card-b done from 20261008-s2" in err
+    assert len(served.runs) == 1
 
 
 def test_no_resume_message_when_nothing_to_resume(

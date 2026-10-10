@@ -44,7 +44,7 @@ def test_main_defaults_without_a_hook(
     monkeypatch.setattr(sys, "argv", ["scripted"])
     assert scripted.main() == 0
     assert recorder.args == [
-        ("http://127.0.0.1:8779", "io-24vdc-relay-coil", 22, 110.0, None)
+        ("http://127.0.0.1:8779", "io-24vdc-relay-coil", 22, 300.0, None)
     ]
     assert capsys.readouterr().out == (
         "session sess-1: 1 messages, credited 10/20 min\n"
@@ -85,5 +85,8 @@ def test_module_runs_as_a_script(
     with pytest.raises(SystemExit) as exit_info:
         runpy.run_module("plc_lab.tutor.scripted", run_name="__main__")
     assert exit_info.value.code == 0
-    assert urls == ["http://127.0.0.1:8779/api/start"]
+    assert urls == [
+        "http://127.0.0.1:8779/api/start",
+        "http://127.0.0.1:8779/api/stop",
+    ]
     assert "session sess-1" in capsys.readouterr().out

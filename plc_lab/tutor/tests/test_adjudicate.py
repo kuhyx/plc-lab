@@ -11,7 +11,13 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from plc_lab.tutor import adjudicate
-from plc_lab.tutor.adjudicate import anchors, load, verdicts
+from plc_lab.tutor.adjudicate import (
+    MIN_UNCHECKED_BLOCK,
+    anchors,
+    load,
+    message_indices,
+    verdicts,
+)
 from plc_lab.tutor.models import REQUIRED_FIELDS
 
 if TYPE_CHECKING:
@@ -40,11 +46,13 @@ def good() -> list[dict[str, Any]]:
         ),
         tutor_event(
             "Right: typically 24 V.",
+            ui={"card_done": True},
             check_result={"passed": True, "feedback": "ok"},
             low_effort=True,
         ),
         {"type": "learner", "text": "ok"},
-        {"type": "credit", "recorded": True},
+        {"type": "credit", "recorded": True, "block": 20, "checks_passed": 0},
+        {"type": "next_card"},
     ]
 
 
@@ -54,11 +62,11 @@ def results(events: list[dict[str, Any]]) -> dict[str, bool]:
 
 
 def test_good_transcript_passes_everything() -> None:
-    assert results(good()) == dict.fromkeys("abcdef", True)
+    assert results(good()) == dict.fromkeys("abcdefgh", True)
 
 
 def test_empty_transcript_fails_everything() -> None:
-    assert results([]) == dict.fromkeys("abcdef", False)
+    assert results([]) == dict.fromkeys("abcdefgh", False)
 
 
 def test_a_fails_without_question_or_terms_or_when_answering() -> None:
@@ -138,9 +146,56 @@ def test_f_fails_without_low_effort_after_the_first_turn() -> None:
 def test_anchors_point_at_first_image_first_diagram_and_last() -> None:
     events = good()
     events[2]["ui"] = {"images": [IMAGE]}
-    assert anchors(events) == {"last": "m4", "image": "m2", "diagram": "m2"}
+    assert anchors(events) == {"last": "m2", "image": "m1", "diagram": "m1"}
     events[1]["ui"] = {}
-    assert anchors(events) == {"last": "m4", "image": "m4", "diagram": "m0"}
+    assert anchors(events) == {"last": "m2", "image": "m2", "diagram": "m0"}
+
+
+def test_g_needs_a_recorded_unchecked_credit_after_15_minutes() -> None:
+    early = good()
+    early[4]["block"] = MIN_UNCHECKED_BLOCK - 1
+    assert not results(early)["g"]
+    checked = good()
+    checked[4]["checks_passed"] = 1
+    assert not results(checked)["g"]
+    unrecorded = good()
+    unrecorded[4]["recorded"] = False
+    assert not results(unrecorded)["g"]
+    legacy = good()
+    del legacy[4]["checks_passed"]
+    assert not results(legacy)["g"]
+
+
+def test_h_needs_a_choice_after_every_card_done() -> None:
+    no_done = good()
+    no_done[2]["ui"] = {}
+    assert not results(no_done)["h"]
+    no_choice = good()
+    del no_choice[5]
+    assert not results(no_choice)["h"]
+    stopped = good()
+    stopped[5] = {"type": "stop"}
+    assert results(stopped)["h"]
+    second_done = good()
+    second_done.insert(5, tutor_event("again", ui={"card_done": True}))
+    assert results(second_done)["h"]
+    second_done.insert(6, {"type": "learner", "text": "x"})
+    del second_done[-1]
+    assert not results(second_done)["h"]
+
+
+def test_message_indices_follow_the_page_message_count() -> None:
+    events = [
+        tutor_event("first"),
+        {"type": "learner", "text": "a"},
+        tutor_event("second"),
+        {"type": "learner", "text": "unanswered"},
+        {"type": "next_card", "ui": {"title": "divider"}},
+        tutor_event("new card"),
+        {"type": "next_card"},
+        tutor_event("after a bare next_card"),
+    ]
+    assert message_indices(events) == [0, 2, 4, 5]
 
 
 def write_jsonl(path: Path, events: list[dict[str, Any]]) -> Path:
@@ -161,7 +216,7 @@ def test_main_passes_and_fails(
     path = write_jsonl(tmp_path / "ok.jsonl", good())
     assert adjudicate.main(["prog", str(path)]) == 0
     out = capsys.readouterr().out
-    assert out.count("PASS") == len("abcdef")
+    assert out.count("PASS") == len("abcdefgh")
     assert "FAIL" not in out
     bad = write_jsonl(tmp_path / "bad.jsonl", good()[:1])
     assert adjudicate.main(["prog", str(bad)]) == 1
@@ -174,9 +229,9 @@ def test_main_anchors_prints_json(
     path = write_jsonl(tmp_path / "s.jsonl", good())
     assert adjudicate.main(["prog", "--anchors", str(path)]) == 0
     assert json.loads(capsys.readouterr().out) == {
-        "last": "m4",
-        "image": "m2",
-        "diagram": "m2",
+        "last": "m2",
+        "image": "m1",
+        "diagram": "m1",
     }
 
 

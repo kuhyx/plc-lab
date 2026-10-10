@@ -22,6 +22,12 @@ from plc_lab.tutor.session import TutorSession, isolated_options
 
 LEARNER_MODEL: Final = "claude-haiku-5-5"
 FORCED: Final = {2: "ok", 5: "idk"}
+# The first answer to an open check is a genuine but wrong attempt, so the
+# check is graded "not yet" and the credit that follows has no passed check.
+WRONG_FIRST: Final = (
+    "My best guess is that the coil just runs on ordinary wall-socket voltage "
+    "like any appliance, so I do not see anything special about it."
+)
 _PERSONA: Final = """\
 You role-play a learner in a tutoring chat. You are a software engineer who \
 knows NOTHING about electricity or industrial automation: you do not really \
@@ -82,18 +88,24 @@ async def run(
     advance_s: float,
     hook: tuple[int, str] | None = None,
 ) -> dict[str, Any]:
-    """Drive one session; stop when the card is done and a block is recorded."""
+    """Drive one session; Stop here once the card is done and a unit is recorded.
+
+    Returns the state from just before ``/api/stop`` (afterwards it is empty).
+    """
     learner = TutorSession(
         isolated_options(_PERSONA, model=LEARNER_MODEL, structured=False, effort="low")
     )
     state = await asyncio.to_thread(_call, f"{base}/api/start", {"card_id": card_id})
+    wrong_given = False
     try:
         for turn in range(max_turns):
             tutor_text = state["messages"][-1]["text"]
             done = any(m.get("card_done") for m in state["messages"])
             if done and any(r["recorded"] for r in state["receipts"]):
                 break
-            if turn in FORCED:
+            if state["check_open"] and not wrong_given:
+                text, wrong_given = WRONG_FIRST, True
+            elif turn in FORCED:
                 text = FORCED[turn]
             else:
                 shown = _page_notes(state["messages"][-1])
@@ -107,6 +119,7 @@ async def run(
             state = await asyncio.to_thread(
                 _call, f"{base}/api/message", {"text": text, "advance_s": advance_s}
             )
+        await asyncio.to_thread(_call, f"{base}/api/stop", {})
     finally:
         await learner.close()
     return state
@@ -124,7 +137,7 @@ def main() -> int:
     parser.add_argument(
         "--hook-cmd", help="shell command run mid-session (a screenshot)"
     )
-    parser.add_argument("--advance", type=float, default=110.0)
+    parser.add_argument("--advance", type=float, default=300.0)
     args = parser.parse_args()
     hook = (args.hook_after, args.hook_cmd) if args.hook_cmd else None
     state = asyncio.run(run(args.url, args.card, args.max_turns, args.advance, hook))

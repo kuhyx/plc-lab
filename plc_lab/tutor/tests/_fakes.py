@@ -3,12 +3,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from claude_agent_sdk import ClaudeAgentOptions
 
 from plc_lab.tutor.models import TutorTurn
 from plc_lab.tutor.session import Prompt, Reply, TutorSession
+
+if TYPE_CHECKING:
+    from plc_lab.tutor.clock import BlockReady
 
 
 def turn(message: str = "What do you know about a coil?", **fields: Any) -> TutorTurn:
@@ -60,3 +63,42 @@ class ManualClock:
     def advance(self, seconds: float) -> None:
         """Move time forward."""
         self.t += seconds
+
+
+class FakeCredit:
+    """An injected ``credit_fn``: one row per call, no ledger touched.
+
+    ``error`` makes every row a refusal (nothing recorded, nothing paid).
+    """
+
+    def __init__(self, *, error: str | None = None) -> None:
+        """Pay nothing and record nothing until called."""
+        self.error = error
+        self.calls: list[list[BlockReady]] = []
+        self.sessions: list[str] = []
+        self.total = 0
+
+    def __call__(self, units: list[BlockReady], sid: str) -> list[dict[str, Any]]:
+        """Remember the call; return the receipt row the real writer would."""
+        self.calls.append(list(units))
+        self.sessions.append(sid)
+        last = units[-1]
+        paid = 0 if self.error else len(units)
+        self.total += paid
+        return [
+            {
+                "block": last.block,
+                "span": len(units),
+                "checks_passed": last.checks_passed,
+                "recorded": self.error is None,
+                "minutes": paid,
+                "minutes_today": self.total,
+                "entry_id": f"{sid}-m{last.block}",
+                "error": self.error,
+            }
+        ]
+
+    @property
+    def blocks(self) -> list[list[int]]:
+        """The minute numbers of each call."""
+        return [[u.block for u in call] for call in self.calls]

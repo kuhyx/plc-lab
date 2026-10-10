@@ -19,9 +19,13 @@ Time accrues in two kinds of gap:
 
 Gaps that would be negative (the wall clock stepped back) earn zero.
 
-A block is :data:`BLOCK_SECONDS` of active time *and* at least one passed check
-since the previous block; time without a pass leaves a block "pending check".
-At most :data:`MAX_BLOCKS` per session. Pure: no I/O, time is injected.
+Credit is per active minute: each :data:`UNIT_SECONDS` of active time releases
+one :class:`BlockReady` (a "unit"), up to :data:`MAX_UNITS` per session, and
+nothing else gates it (kuhy, 2026-10-10: 21 active minutes credited nothing
+because no check had passed). Checks are still tallied and reported on each
+unit (cumulative over the session) so adjudication can see a minute credited
+with none. The daily cap across
+sessions is the ledger's, not the clock's. Pure: no I/O, time is injected.
 """
 
 from __future__ import annotations
@@ -34,8 +38,8 @@ from typing import Final
 # cut off real thinking and forfeited the whole gap).
 REPLY_TIMEOUT: Final = 360.0
 GENERATION_CAP: Final = 60.0
-BLOCK_SECONDS: Final = 900.0
-MAX_BLOCKS: Final = 4
+UNIT_SECONDS: Final = 60.0  # one credited unit = one active minute
+MAX_UNITS: Final = 60  # per session; the daily cap is the ledger's
 
 STALLED: Final = f"no reply for {REPLY_TIMEOUT // 60:.0f} min"
 LOW_EFFORT: Final = "low-effort reply"
@@ -80,15 +84,15 @@ def is_filler(text: str, *, check_open: bool) -> bool:
 
 @dataclass(frozen=True)
 class BlockReady:
-    """One newly earned 15-minute block, ready to be credited.
+    """One newly earned active minute (a "unit"), ready to be credited.
 
     Attributes:
-        block: Which block of the session, 1..MAX_BLOCKS.
+        block: Which unit of the session, 1..MAX_UNITS (the n-th active minute).
         active_seconds: The session's *cumulative* active seconds at the moment
-            the block was earned (>= block * BLOCK_SECONDS).
+            the unit was earned (>= block * UNIT_SECONDS).
         ended_at: Unix time of the event that earned it.
-        checks_passed: Checks passed since the previous block was earned.
-        checks_total: Checks resolved (passed or failed) in the same span.
+        checks_passed: Checks passed so far this session.
+        checks_total: Checks resolved (passed or failed) so far this session.
     """
 
     block: int
@@ -109,14 +113,14 @@ class _Turn:
 
 @dataclass(slots=True)
 class _Tally:
-    """Checks resolved since the previous block was earned."""
+    """Checks resolved so far this session (cumulative, never reset)."""
 
     passed: int = 0
     total: int = 0
 
 
 class EngagementClock:
-    """Accrues active seconds from chat events and releases check-gated blocks."""
+    """Accrues active seconds from chat events and releases a unit per minute."""
 
     def __init__(self, now: float) -> None:
         """Start a session at unix time ``now``; the start itself earns nothing."""
@@ -174,15 +178,19 @@ class EngagementClock:
         *,
         passed: bool,
     ) -> None:
-        """The open check resolved at ``t``; a pass may release a pending block."""
+        """The open check resolved at ``t``; tallied for the next unit's report."""
         self._turn.check_open = False
         self._tally.total += 1
         if passed:
             self._tally.passed += 1
         self._release(t)
 
+    def check_dropped(self) -> None:
+        """The open check was abandoned (the card changed): bare yes/no is filler."""
+        self._turn.check_open = False
+
     def ready_blocks(self) -> list[BlockReady]:
-        """Blocks earned since the previous call; each is returned exactly once."""
+        """Units earned since the previous call; each is returned exactly once."""
         fresh = self._earned[self._released :]
         self._released = len(self._earned)
         return fresh
@@ -200,35 +208,30 @@ class EngagementClock:
             reason = STALLED if now - turn.tutor_at > REPLY_TIMEOUT else None
         elif now is not None and turn.reply_at is not None:
             reason = TUTOR_OVERDUE if now - turn.reply_at > GENERATION_CAP else None
-        earned = len(self._earned)
-        by_time = min(MAX_BLOCKS, int(self._active // BLOCK_SECONDS))
         return {
             "active_seconds": self._active,
-            "blocks_earned": earned,
-            "blocks_pending_check": max(0, by_time - earned),
+            "blocks_earned": len(self._earned),
             "paused": reason is not None,
             "paused_reason": reason,
         }
 
     def _accrue(self, seconds: float, t: float) -> None:
-        """Add a non-negative gap, then see whether it completed a block."""
+        """Add a non-negative gap, then see whether it completed a unit."""
         self._active += max(0.0, seconds)
         self._release(t)
 
     def _release(self, t: float) -> None:
-        """Earn the next block if its time is in and a check passed since the last."""
-        nxt = len(self._earned) + 1
-        if nxt > MAX_BLOCKS or self._tally.passed < 1:
-            return
-        if self._active < nxt * BLOCK_SECONDS:
-            return
-        self._earned.append(
-            BlockReady(
-                block=nxt,
-                active_seconds=self._active,
-                ended_at=t,
-                checks_passed=self._tally.passed,
-                checks_total=self._tally.total,
+        """Earn every unit whose time is in (a loop: a big accrual strands none)."""
+        while (
+            len(self._earned) < MAX_UNITS
+            and self._active >= (len(self._earned) + 1) * UNIT_SECONDS
+        ):
+            self._earned.append(
+                BlockReady(
+                    block=len(self._earned) + 1,
+                    active_seconds=self._active,
+                    ended_at=t,
+                    checks_passed=self._tally.passed,
+                    checks_total=self._tally.total,
+                )
             )
-        )
-        self._tally = _Tally()

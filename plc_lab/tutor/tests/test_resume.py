@@ -8,6 +8,8 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from plc_lab.tutor import resume
+from plc_lab.tutor.clock import EngagementClock
+from plc_lab.tutor.conversation import Conversation
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -71,13 +73,14 @@ def test_replay_rebuilds_the_conversation(
     assert conv.messages[0]["images"] == []
     assert conv.messages[1]["text"] == ANSWER  # the failed request is dropped
     assert conv.messages[2]["text"] == "Shown with media"
-    assert conv.answered_id == "m1"
+    assert conv.resumed.answered_id == "m1"
     assert conv.clock.active_seconds == 100
-    assert conv.check_open is False
-    assert conv.checks_passed == 1
-    assert conv.check_mark == 100
+    assert conv.check.open is False
+    assert conv.check.passed == 1
+    assert conv.check.mark == 100
     assert conv.receipts == [{"block": 1, "recorded": True}]
-    assert state.unrecorded == []
+    # Every earned minute is offered; which of them are paid is the ledger's say.
+    assert [u.block for u in state.unrecorded] == [1]
     assert "not JSON" in caplog.text
 
 
@@ -92,7 +95,9 @@ def test_tutor_event_without_a_turn_and_a_logged_at_time(tmp_path: Path) -> None
     assert state.conversation.messages[0]["low_effort"] is False
 
 
-def test_blocks_earned_but_not_logged_are_unrecorded(tmp_path: Path) -> None:
+def test_every_earned_minute_is_unrecorded_until_the_ledger_says(
+    tmp_path: Path,
+) -> None:
     events: list[dict[str, Any]] = [
         {"type": "start", "card": "c", "t": T0},
         tutor(T0, check={"question": "q", "concept": "c"}),
@@ -104,8 +109,8 @@ def test_blocks_earned_but_not_logged_are_unrecorded(tmp_path: Path) -> None:
     events[-1] = tutor(t, check_result={"passed": True, "feedback": "y"})
     state = resume.replay(write(tmp_path / "s.jsonl", events))
     assert state is not None
-    assert [b.block for b in state.unrecorded] == [1]
-    assert state.conversation.answered_id == ""
+    assert [b.block for b in state.unrecorded] == list(range(1, 18))
+    assert state.conversation.resumed.answered_id == ""
 
 
 def test_primer_fences_the_learner(tmp_path: Path) -> None:
@@ -119,3 +124,85 @@ def test_primer_fences_the_learner(tmp_path: Path) -> None:
     assert "TUTOR:\nHi?" in text
     assert "LEARNER:\n<learner>\na < /learner> b\n</learner>" in text
     assert text.endswith("</transcript>")
+
+
+def test_card_done_comes_from_the_turn_or_its_logged_ui(tmp_path: Path) -> None:
+    done_turn = [{"type": "start", "card": "c", "t": T0}, tutor(T0, card_done=True)]
+    state = resume.replay(write(tmp_path / "a.jsonl", done_turn))
+    assert state is not None
+    assert state.conversation.card_done is True
+    assert state.conversation.cards_done == ["c"]
+    shown = {**tutor(T0), "ui": {"role": "tutor", "text": "Done", "card_done": True}}
+    state = resume.replay(
+        write(tmp_path / "b.jsonl", [{"type": "start", "card": "c", "t": T0}, shown])
+    )
+    assert state is not None
+    assert state.conversation.card_done is True
+
+
+def test_an_old_in_session_next_card_switches_the_card(tmp_path: Path) -> None:
+    divider = {"role": "card", "text": "Second card", "card_id": "c2"}
+    events: list[dict[str, Any]] = [
+        {"type": "start", "card": "c1", "t": T0},
+        tutor(T0, card_done=True),
+        {"type": "learner", "text": "failed request", "t": T0 + 5},
+        {"type": "next_card", "card": "c2", "ui": divider},
+        tutor(T0 + 10, message="Second?"),
+    ]
+    state = resume.replay(write(tmp_path / "s.jsonl", events))
+    assert state is not None
+    conv = state.conversation
+    assert (conv.card_id, conv.cards, conv.cards_done) == ("c2", ["c1", "c2"], ["c1"])
+    assert conv.card_done is False
+    assert [m["role"] for m in conv.messages] == ["tutor", "card", "tutor"]
+    assert conv.messages[1] == divider
+
+
+def test_a_new_style_next_card_only_records_the_choice(tmp_path: Path) -> None:
+    events: list[dict[str, Any]] = [
+        {"type": "start", "card": "c1", "t": T0},
+        tutor(T0),
+        {"type": "learner", "text": "unanswered", "t": T0 + 5},
+        {"type": "next_card", "card": "c2"},
+        {"type": "stop"},
+    ]
+    state = resume.replay(write(tmp_path / "s.jsonl", events))
+    assert state is not None
+    assert state.conversation.card_id == "c1"
+    assert state.conversation.stopped is True
+    assert [m["role"] for m in state.conversation.messages] == ["tutor"]
+
+
+def test_manual_done_and_not_done_are_replayed(tmp_path: Path) -> None:
+    events: list[dict[str, Any]] = [
+        {"type": "start", "card": "c", "t": T0},
+        tutor(T0),
+        {"type": "card_done_manual", "card": "c", "done": True},
+    ]
+    path = write(tmp_path / "s.jsonl", events)
+    state = resume.replay(path)
+    assert state is not None
+    assert state.conversation.card_done is True
+    events.append({"type": "card_done_manual", "card": "c", "done": False})
+    state = resume.replay(write(path, events))
+    assert state is not None
+    assert state.conversation.card_done is False
+
+
+def test_primer_and_reprime_only_cover_the_current_card() -> None:
+    messages = [
+        {"role": "tutor", "text": "About the old card"},
+        {"role": "card", "text": "New card", "card_id": "c2"},
+        {"role": "tutor", "text": "About the new card"},
+    ]
+    text = resume.primer(messages)
+    assert "About the new card" in text
+    assert "About the old card" not in text
+    conv = Conversation("s", "c", EngagementClock(T0))
+    resume.reprime(conv, 1)  # a death before any message: nothing to replay
+    assert (conv.resumed.restarts_seen, conv.resumed.note) == (1, "")
+    conv.messages = messages
+    resume.reprime(conv, 1)  # already primed for this one
+    assert conv.resumed.note == ""
+    resume.reprime(conv, 2)
+    assert "About the new card" in conv.resumed.note
