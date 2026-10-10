@@ -10,6 +10,7 @@ import re
 import traceback
 from typing import TYPE_CHECKING, Any, Final
 
+from claude_agent_sdk import ClaudeSDKError
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse, JSONResponse, Response
@@ -82,7 +83,12 @@ def create_app(
         yield
         await eng.close()
 
-    app = Starlette(routes=routes, lifespan=lifespan)
+    # Anything no route maps itself still reaches the page as JSON it can show
+    # (Starlette's ServerErrorMiddleware runs this, then re-raises so uvicorn
+    # logs the traceback): typed handlers below, this net for the rest.
+    app = Starlette(
+        routes=routes, lifespan=lifespan, exception_handlers={Exception: _unhandled}
+    )
     app.state.engine = eng
     return app
 
@@ -105,8 +111,9 @@ async def _report(eng: Engine, body: dict[str, Any]) -> Response:
         return JSONResponse(_error_body(err), status_code=400)
     try:
         stored = await run_in_threadpool(feedback.record, entry)
-    # Broad: whatever it was, the page shows it to paste back.
-    except Exception as err:  # pylint: disable=broad-exception-caught
+    # The file or its lock failed, or an existing line is corrupt (bad JSON,
+    # missing id); anything else reaches ``_unhandled``.
+    except (OSError, ValueError, KeyError) as err:
         _logger.exception("could not store feedback")
         return JSONResponse(_error_body(err), status_code=500)
     return JSONResponse({"id": stored["id"], "markdown": feedback.to_markdown(stored)})
@@ -145,13 +152,21 @@ async def _json(request: Request) -> dict[str, Any]:
 async def _guard(call: Coroutine[Any, Any, dict[str, Any]]) -> Response:
     try:
         return JSONResponse(await call)
-    except (SessionError, ValueError, RuntimeError, TimeoutError) as err:
+    except (
+        SessionError,
+        ClaudeSDKError,
+        ValueError,
+        RuntimeError,
+        TimeoutError,
+    ) as err:
         _logger.warning("tutor call failed: %s", err)
         return JSONResponse(_error_body(err), status_code=502)
-    # Broad: whatever it was, the page shows it to paste back.
-    except Exception as err:  # pylint: disable=broad-exception-caught
-        _logger.exception("unhandled tutor error")
-        return JSONResponse(_error_body(err), status_code=500)
+
+
+async def _unhandled(_: Request, err: Exception) -> Response:
+    """Any error no route maps: a 500 whose body the page shows to paste back."""
+    _logger.error("unhandled tutor error: %s", err)
+    return JSONResponse(_error_body(err), status_code=500)
 
 
 def _error_body(err: BaseException) -> dict[str, str]:

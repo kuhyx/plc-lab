@@ -11,7 +11,11 @@ import pytest
 
 from plc_lab.tutor import session
 from plc_lab.tutor.models import TURN_SCHEMA
-from plc_lab.tutor.session import TutorSession, isolated_options, sandbox_dir
+from plc_lab.tutor.session import (
+    TutorSession,
+    isolated_options,
+    sandbox_dir,
+)
 from plc_lab.tutor.tests.test_session import FakeClient, init_msg, result
 
 if TYPE_CHECKING:
@@ -79,24 +83,6 @@ def test_last_init_is_kept_when_a_reply_has_none(
 
     asyncio.run(go())
     assert sess.last_init == {"v": 1}
-
-
-def test_client_error_is_relayed_and_the_task_keeps_serving(
-    fake_client: type[FakeClient],
-) -> None:
-    fake_client.scripts = [RuntimeError("cli died"), [result(result="again")]]
-
-    async def go() -> str:
-        sess = TutorSession(ClaudeAgentOptions())
-        try:
-            with pytest.raises(RuntimeError, match="cli died"):
-                await sess.ask_raw("first")
-            return (await sess.ask_raw("second")).text
-        finally:
-            await sess.close()
-
-    assert asyncio.run(go()) == "again"
-    assert len(fake_client.instances) == 1
 
 
 def test_close_without_a_started_task_is_a_noop(
@@ -175,22 +161,3 @@ def test_a_cli_that_fails_to_start_fails_the_caller_fast(
 
     assert asyncio.run(scenario()) == "second try"
     assert FakeClient.instances[-1].prompts == ["two"]
-
-
-def test_a_close_sentinel_left_by_a_dead_process_is_skipped(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    DeadOnStart.failures = 1
-    monkeypatch.setattr(session, "ClaudeSDKClient", DeadOnStart)
-
-    async def scenario() -> None:
-        sess = TutorSession(ClaudeAgentOptions())
-        loop = asyncio.get_running_loop()
-        fut: asyncio.Future[session.Reply] = loop.create_future()
-        await sess._queue.put(None)
-        await sess._queue.put(("one", fut))
-        await sess._run()
-        with pytest.raises(OSError, match="CLI not found"):
-            await fut
-
-    asyncio.run(scenario())

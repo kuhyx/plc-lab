@@ -9,13 +9,13 @@ import json
 from typing import TYPE_CHECKING, Any
 import urllib.request
 
+import pytest
+
 from plc_lab.tutor import images
 from plc_lab.tutor.images import CommonsImage
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
 
 def page(
@@ -60,12 +60,31 @@ def test_get_sends_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
         return Resp(b"payload")
 
     monkeypatch.setattr(urllib.request, "urlopen", fake)
-    assert images._get("https://example.test/a") == b"payload"
-    assert seen == {
-        "agent": images.USER_AGENT,
-        "url": "https://example.test/a",
-        "timeout": 20,
-    }
+    url = "https://upload.wikimedia.org/a/b.png?width=800"
+    assert images._get(url) == b"payload"
+    assert seen == {"agent": images.USER_AGENT, "url": url, "timeout": 20}
+    assert images._get("https://commons.wikimedia.org/w/api.php") == b"payload"
+    assert seen["url"] == "https://commons.wikimedia.org/w/api.php"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://upload.wikimedia.org/a.png",
+        "file:///etc/passwd",
+        "https://example.test/a.png",
+        "https://upload.wikimedia.org.evil.test/a.png",
+    ],
+)
+def test_get_refuses_anything_but_https_commons(
+    monkeypatch: pytest.MonkeyPatch, url: str
+) -> None:
+    def never(*_: object, **__: object) -> Resp:
+        raise AssertionError
+
+    monkeypatch.setattr(urllib.request, "urlopen", never)
+    with pytest.raises(ValueError, match="not an https Commons URL"):
+        images._get(url)
 
 
 def test_query_parses_pages(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -102,7 +102,7 @@ def replay(path: Path) -> Replayed | None:
             if pending is not None:
                 text = str(pending.get("text", ""))
                 low = bool(turn.get("low_effort"))
-                conv.clock.user_reply(_time(pending), text, low)
+                conv.clock.user_reply(_time(pending), text, low_effort=low)
                 conv.messages.append({"role": "learner", "text": text})
                 conv.answered_id = str(pending.get("msg_id", ""))
                 pending = None

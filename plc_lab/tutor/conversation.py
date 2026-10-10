@@ -42,7 +42,7 @@ class Conversation:
 
     def resolve_check(self, t: float, *, passed: bool) -> None:
         """The open check was graded at ``t``."""
-        self.clock.check_result(t, passed)
+        self.clock.check_result(t, passed=passed)
         self.check_open = False
         self.check_mark = self.clock.active_seconds
         self.checks_passed += int(passed)

@@ -115,3 +115,28 @@ def test_store_failure_is_a_500(
     assert response.status_code == 500
     assert response.json()["error"] == "disk full"
     assert response.json()["type"] == "OSError"
+
+
+def test_corrupt_store_is_a_500(client: TestClient) -> None:
+    path = feedback.feedback_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('{"text": "no id"}\n', encoding="utf-8")
+    response = client.post("/api/feedback", json=report())
+    assert response.status_code == 500
+    assert response.json()["type"] == "KeyError"
+
+
+def test_unexpected_store_error_reaches_the_app_handler(
+    engine: Engine, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(_entry: dict[str, Any]) -> dict[str, Any]:
+        msg = "not serialisable"
+        raise TypeError(msg)
+
+    monkeypatch.setattr(feedback, "record", broken)
+    app = create_app(engine, media_dirs=(tmp_path / "img", tmp_path / "svg"))
+    with TestClient(app, raise_server_exceptions=False) as c:
+        response = c.post("/api/feedback", json=report())
+    assert response.status_code == 500
+    assert response.json()["error"] == "not serialisable"
+    assert response.json()["type"] == "TypeError"

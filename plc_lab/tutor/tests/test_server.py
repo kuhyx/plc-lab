@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from claude_agent_sdk import ProcessError
 import pytest
 from starlette.testclient import TestClient
 
@@ -131,12 +132,27 @@ def test_resent_msg_id_is_answered_once(client: TestClient, rig: Rig) -> None:
     assert rig.engine._conv.answered_id == "m" * 64
 
 
-def test_unexpected_error_is_a_500(client: TestClient, rig: Rig) -> None:
-    client.post("/api/start", json={})
-    rig.fake.replies.insert(0, KeyError("boom"))
-    response = client.post("/api/message", json={"text": "hi"})
+def test_unexpected_error_is_a_500_with_the_error_body(rig: Rig) -> None:
+    # No route maps a KeyError: the app-level handler answers, then Starlette
+    # re-raises for uvicorn's log (hence raise_server_exceptions=False).
+    app = create_app(rig.engine, media_dirs=(rig.images, rig.svgs))
+    with TestClient(app, raise_server_exceptions=False) as c:
+        c.post("/api/start", json={})
+        rig.fake.replies.insert(0, KeyError("boom"))
+        response = c.post("/api/message", json={"text": "hi"})
     assert response.status_code == 500
-    assert response.json()["type"] == "KeyError"
+    body = response.json()
+    assert body["type"] == "KeyError"
+    assert body["error"] == "'boom'"
+    assert "KeyError: 'boom'" in body["traceback"]
+
+
+def test_sdk_error_is_a_502(client: TestClient, rig: Rig) -> None:
+    client.post("/api/start", json={})
+    rig.fake.replies.insert(0, ProcessError("cli exited", exit_code=1))
+    response = client.post("/api/message", json={"text": "hi"})
+    assert response.status_code == 502
+    assert response.json()["type"] == "ProcessError"
 
 
 def test_media_serves_images_and_diagrams(client: TestClient, rig: Rig) -> None:

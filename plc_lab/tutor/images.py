@@ -42,6 +42,8 @@ USER_AGENT: Final = (
 _MIMES: Final = ("image/jpeg", "image/png", "image/svg+xml", "image/webp")
 _TAG: Final = re.compile(r"<[^>]+>")
 _TIMEOUT: Final = 20
+# The API host and the thumbnail host; a thumburl from the JSON is untrusted.
+_HOSTS: Final = frozenset({"commons.wikimedia.org", "upload.wikimedia.org"})
 _log = logging.getLogger(__name__)
 
 
@@ -71,8 +73,22 @@ class CommonsImage:
 
 
 def _get(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+    """GET a Commons URL; anything but https on a Commons host raises ValueError.
+
+    Rebuilt on a literal ``https://``: no ``file:`` or custom scheme reaches urlopen.
+    """
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or parts.hostname not in _HOSTS:
+        msg = f"not an https Commons URL: {url!r}"
+        raise ValueError(msg)
+    query = f"?{parts.query}" if parts.query else ""
+    with urllib.request.urlopen(
+        urllib.request.Request(
+            f"https://{parts.netloc}{parts.path}{query}",
+            headers={"User-Agent": USER_AGENT},
+        ),
+        timeout=_TIMEOUT,
+    ) as resp:
         data: bytes = resp.read()
     return data
 

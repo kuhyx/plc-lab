@@ -15,6 +15,7 @@ import json
 import subprocess
 import sys
 from typing import Any, Final
+import urllib.parse
 import urllib.request
 
 from plc_lab.tutor.session import TutorSession, isolated_options
@@ -33,12 +34,33 @@ the tutor explains something clearly, restate it in your own words, \
 imperfectly. When given a comprehension check, answer it fully in your own \
 words using what you were taught. Never mention being an AI or a role-play.
 """
+# The tutor binds 127.0.0.1 only, so its own --url is the only target.
+_LOOPBACK: Final = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def _local(url: str) -> tuple[str, str]:
+    """``(host:port, path?query)`` of ``url``; anything but the local tutor raises.
+
+    http, not https: the tutor serves plain HTTP on loopback. The caller
+    rebuilds the URL on a literal ``http://``, which is what keeps ``file:``
+    and custom schemes out of urlopen.
+    """
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "http" or parts.hostname not in _LOOPBACK:
+        msg = f"the scripted learner only talks to a local http tutor, not {url!r}"
+        raise ValueError(msg)
+    query = f"?{parts.query}" if parts.query else ""
+    return parts.netloc, f"{parts.path}{query}"
 
 
 def _call(url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(url, data=data, method="POST" if data else "GET")
-    with urllib.request.urlopen(req, timeout=420) as resp:
+    host, path = _local(url)
+    method = "POST" if data else "GET"
+    with urllib.request.urlopen(
+        urllib.request.Request(f"http://{host}{path}", data=data, method=method),
+        timeout=420,
+    ) as resp:
         parsed: dict[str, Any] = json.loads(resp.read())
     return parsed
 

@@ -55,14 +55,9 @@ ignore = [
 # Run by hand; their stdout lines are the evidence (canary, run, verdicts).
 "plc_lab/tutor/__main__.py" = ["T201"]
 "plc_lab/tutor/isolation.py" = ["T201"]
-# The scripted learner only calls the tutor's own --url (a localhost server).
-"plc_lab/tutor/scripted.py" = ["S310", "T201"]
+# Run by hand; its progress lines are the evidence the session ran.
+"plc_lab/tutor/scripted.py" = ["T201"]
 "plc_lab/tutor/adjudicate.py" = ["T201"]
-# The Commons fetcher only talks to commons.wikimedia.org / upload.wikimedia.org.
-"plc_lab/tutor/images.py" = ["S310"]
-# user_reply(t, text, low_effort) / check_result(t, passed): positional booleans
-# by the interface engine, resume and the tests agreed on.
-"plc_lab/tutor/clock.py" = ["FBT001"]
 # Sources are https URLs from the card files (cards.py rejects anything else).
 "plc_lab/sources.py" = ["S310"]
 

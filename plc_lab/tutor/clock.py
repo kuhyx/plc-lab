@@ -142,6 +142,7 @@ class EngagementClock:
         self,
         t: float,
         text: str,
+        *,
         low_effort: bool,
     ) -> None:
         """The learner replied at ``t``; ``low_effort`` is the tutor's verdict."""
@@ -168,6 +169,7 @@ class EngagementClock:
     def check_result(
         self,
         t: float,
+        *,
         passed: bool,
     ) -> None:
         """The open check resolved at ``t``; a pass may release a pending block."""

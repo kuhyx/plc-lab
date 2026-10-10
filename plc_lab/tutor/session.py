@@ -134,12 +134,14 @@ class TutorSession:
             asyncio.Queue()
         )
         self._task: asyncio.Task[None] | None = None
+        self._inflight: asyncio.Future[Reply] | None = None
         self.last_init: dict[str, Any] = {}
 
     async def ask_raw(self, prompt: Prompt) -> Reply:
         """Send one user message (text or content blocks); return the raw reply."""
         if self._task is None:
             self._task = asyncio.create_task(self._run())
+            self._task.add_done_callback(self._on_exit)
         fut: asyncio.Future[Reply] = asyncio.get_running_loop().create_future()
         await self._queue.put((prompt, fut))
         return await asyncio.wait_for(fut, _TURN_TIMEOUT)
@@ -162,38 +164,83 @@ class TutorSession:
     async def close(self) -> None:
         """Stop the background task and the CLI process."""
         if self._task is not None:
-            await self._queue.put(None)
-            await self._task
-            self._task = None
+            task = self._task
+            if not task.done():
+                await self._queue.put(None)
+            # wait(), not await: a task that died is reported by _on_exit,
+            # and closing must not re-raise that failure.
+            await asyncio.wait({task})
+            if self._task is task:
+                self._task = None
 
     async def _run(self) -> None:
-        try:
-            async with ClaudeSDKClient(self._options) as client:
-                while (item := await self._queue.get()) is not None:
-                    await self._serve(client, *item)
-        # Broad on purpose: the CLI failed to start or died. Every waiting
-        # caller fails now instead of sitting out the turn timeout, and the
-        # next ask starts a fresh process.
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _logger.exception("model process failed; failing waiting callers")
+        """Own the CLI process; serve queued prompts until the close sentinel.
+
+        Nothing is caught here: whatever kills the process (it failed to
+        start, died, or the SDK raised) ends this task, and :meth:`_on_exit`
+        fails every waiting caller from the task's own exception.
+        """
+        async with ClaudeSDKClient(self._options) as client:
+            while (item := await self._queue.get()) is not None:
+                self._inflight = item[1]
+                await self._serve(client, *item)
+                self._inflight = None
+
+    def _on_exit(self, task: asyncio.Task[None]) -> None:
+        """The process is gone: fail its callers now, not at the turn timeout.
+
+        The next :meth:`ask_raw` starts a fresh process (without the old
+        conversation's memory; the engine's resume primer is what restores it).
+        """
+        if self._task is task:
             self._task = None
-            while not self._queue.empty():
-                item = self._queue.get_nowait()
-                if item is not None:
-                    item[1].set_exception(err)
+        waiting = [self._inflight] if self._inflight is not None else []
+        self._inflight = None
+        while not self._queue.empty():
+            item = self._queue.get_nowait()
+            if item is not None:
+                waiting.append(item[1])
+        if task.cancelled():
+            _logger.error("model task cancelled; cancelling %d callers", len(waiting))
+            err: BaseException | None = None
+        else:
+            err = task.exception()
+            if err is None:
+                if not waiting:
+                    return  # a clean close with nobody waiting
+                err = SessionError("the model session closed before replying")
+            _logger.error("model process ended: %r; failing %d", err, len(waiting))
+        for fut in waiting:
+            _settle(fut, err)
 
     async def _serve(
         self, client: ClaudeSDKClient, prompt: Prompt, fut: asyncio.Future[Reply]
     ) -> None:
-        """One model call; any failure is relayed to the awaiting caller."""
+        """One model call; a failed turn is relayed and the process kept.
+
+        Only the model's error result (:class:`SessionError`) is caught: it is
+        raised after the whole turn was read, so the stream is clean for the
+        next one. Anything else (the CLI died, a line would not parse) leaves
+        the process in an unknown state and ends :meth:`_run`.
+        """
         try:
             await client.query(prompt if isinstance(prompt, str) else _blocks(prompt))
             reply = _collect([m async for m in client.receive_response()])
-            if reply.init:
-                self.last_init = reply.init
+        except SessionError as err:
+            _logger.warning("model turn failed; relayed to the caller: %s", err)
+            _settle(fut, err)
+            return
+        if reply.init:
+            self.last_init = reply.init
+        if not fut.done():  # the caller may have timed out meanwhile
             fut.set_result(reply)
-        # Broad on purpose: a narrower catch would kill the task and leave
-        # the caller waiting out the whole turn timeout.
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _logger.exception("model call failed; relayed to the caller")
-            fut.set_exception(err)
+
+
+def _settle(fut: asyncio.Future[Reply], err: BaseException | None) -> None:
+    """Fail ``fut`` with ``err`` (cancel it when None), unless already done."""
+    if fut.done():
+        return
+    if err is None:
+        fut.cancel()
+    else:
+        fut.set_exception(err)

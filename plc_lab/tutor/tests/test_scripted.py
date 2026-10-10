@@ -202,11 +202,33 @@ def fake_urlopen(
 def test_call_get_and_post(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[tuple[urllib.request.Request, float]] = []
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen(seen))
-    assert scripted._call("http://t/api/state") == {"ok": True}
-    assert scripted._call("http://t/api/start", {"card_id": "c"}) == {"ok": True}
+    assert scripted._call("http://127.0.0.1:8779/api/state?x=1") == {"ok": True}
+    assert scripted._call("http://localhost/api/start", {"card_id": "c"}) == {
+        "ok": True
+    }
     get, post = seen
+    assert get[0].full_url == "http://127.0.0.1:8779/api/state?x=1"
+    assert post[0].full_url == "http://localhost/api/start"
     assert get[0].get_method() == "GET"
     assert get[0].data is None
     assert get[1] == 420
     assert post[0].get_method() == "POST"
     assert post[0].data == b'{"card_id": "c"}'
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://127.0.0.1:8779/api/state",
+        "file:///etc/passwd",
+        "http://example.test/api/state",
+    ],
+)
+def test_call_refuses_anything_but_the_local_tutor(
+    monkeypatch: pytest.MonkeyPatch, url: str
+) -> None:
+    seen: list[tuple[urllib.request.Request, float]] = []
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen(seen))
+    with pytest.raises(ValueError, match="local http tutor"):
+        scripted._call(url)
+    assert seen == []

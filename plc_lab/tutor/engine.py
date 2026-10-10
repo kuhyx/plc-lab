@@ -216,7 +216,7 @@ class Engine:
         # the check's model call never eats into the learner's reply window.
         t_tutor = self.time()
         if learner_text is not None:
-            conv.clock.user_reply(t_learner, learner_text, turn.low_effort)
+            conv.clock.user_reply(t_learner, learner_text, low_effort=turn.low_effort)
         conv.clock.tutor_message(t_tutor)
         self._apply(turn, t_tutor, message)
 
