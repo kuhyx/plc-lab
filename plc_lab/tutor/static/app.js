@@ -173,6 +173,35 @@ $("composer").addEventListener("submit", async (e) => {
     localStorage.removeItem(`tutor-draft:${sentFrom}`);
   }
 });
+// Enter is a newline (answers are often code); Ctrl/Cmd+Enter sends, like the
+// report box. Tab indents the touched lines by four spaces, Shift+Tab dedents;
+// right after Esc, Tab leaves the box so the keyboard is never trapped.
+const INDENT = "    ";
+let tabLeaves = false;
+function indentLines(box, dedent) {
+  const { value, selectionStart: start, selectionEnd: end } = box;
+  if (!dedent && start === end) {
+    box.setRangeText(INDENT, start, end, "end");
+    return;
+  }
+  const from = value.lastIndexOf("\n", start - 1) + 1;
+  const lines = value.slice(from, end).split("\n");
+  const changed = lines.map((l) => (dedent ? l.replace(/^ {1,4}/, "") : INDENT + l));
+  const firstShift = changed[0].length - lines[0].length;
+  box.setRangeText(changed.join("\n"), from, end, "preserve");
+  const total = changed.join("\n").length - lines.join("\n").length;
+  box.setSelectionRange(Math.max(from, start + firstShift), end + total);
+}
 $("text").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("composer").requestSubmit(); }
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    $("composer").requestSubmit();
+    return;
+  }
+  if (e.key === "Escape") { tabLeaves = true; return; }
+  if (e.key !== "Tab") { tabLeaves = false; return; }
+  if (tabLeaves || e.ctrlKey || e.altKey || e.metaKey) { tabLeaves = false; return; }
+  e.preventDefault();
+  indentLines(e.target, e.shiftKey);
+  e.target.dispatchEvent(new Event("input"));  // the draft autosave
 });

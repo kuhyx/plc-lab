@@ -63,6 +63,20 @@ def test_index_and_static_page(client: TestClient) -> None:
     assert client.get("/static/nothing-here.js").status_code == 404
 
 
+def test_page_and_scripts_are_revalidated(client: TestClient) -> None:
+    # A plain reload must never run a cached app.js against a newer page.
+    page = client.get("/")
+    script = client.get("/static/app.js")
+    assert script.status_code == 200
+    assert "ctrlKey || e.metaKey" in script.text  # Enter is a newline
+    for response in (page, script):
+        assert response.headers["cache-control"] == "no-cache"
+    etag = script.headers["etag"]
+    again = client.get("/static/app.js", headers={"if-none-match": etag})
+    assert again.status_code == 304
+    assert again.headers["cache-control"] == "no-cache"
+
+
 def test_state_and_cards(client: TestClient, rig: Rig) -> None:
     assert client.get("/api/state").json()["session_id"] == ""
     cards = client.get("/api/cards").json()

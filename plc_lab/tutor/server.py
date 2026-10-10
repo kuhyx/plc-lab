@@ -23,11 +23,34 @@ from plc_lab.tutor.session import SessionError
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
+    import os
+    from os import PathLike
 
     from starlette.requests import Request
+    from starlette.types import Scope
 
 _logger = logging.getLogger(__name__)
 STATIC: Final = Path(__file__).parent / "static"
+# The page and its scripts change on every deploy; without this a plain reload
+# can run a cached app.js against the new page (2026-10-10: Enter still sent).
+_REVALIDATE: Final = {"Cache-Control": "no-cache"}
+
+
+class _RevalidatedStatic(StaticFiles):
+    """Static files the browser must revalidate (ETag) before every use."""
+
+    def file_response(
+        self,
+        full_path: PathLike[str] | str,
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        response.headers.update(_REVALIDATE)
+        return response
+
+
 _SAFE_NAME: Final = re.compile(r"^[0-9a-f]{16}(-\d)?\.(png|jpg|svg)$")
 
 
@@ -39,7 +62,7 @@ def create_app(
     image_dir, diagram_dir = media_dirs or (images.cache_dir(), diagrams.cache_dir())
 
     async def index(_: Request) -> Response:
-        return FileResponse(STATIC / "index.html")
+        return FileResponse(STATIC / "index.html", headers=_REVALIDATE)
 
     async def state(_: Request) -> Response:
         return JSONResponse(eng.state())
@@ -75,7 +98,7 @@ def create_app(
         Route("/api/message", message, methods=["POST"]),
         Route("/api/feedback", _feedback_route(eng), methods=["POST"]),
         Route("/media/{name}", media),
-        Mount("/static", StaticFiles(directory=STATIC)),
+        Mount("/static", _RevalidatedStatic(directory=STATIC)),
     ]
 
     @asynccontextmanager
