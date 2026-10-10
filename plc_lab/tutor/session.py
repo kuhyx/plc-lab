@@ -189,8 +189,9 @@ class TutorSession:
     def _on_exit(self, task: asyncio.Task[None]) -> None:
         """The process is gone: fail its callers now, not at the turn timeout.
 
-        The next :meth:`ask_raw` starts a fresh process (without the old
-        conversation's memory; the engine's resume primer is what restores it).
+        The next :meth:`ask_raw` starts a fresh process with NO memory of the
+        conversation: nothing re-primes it mid-session (the engine's resume
+        primer is only set by ``Engine.resume_latest`` at server start).
         """
         if self._task is task:
             self._task = None
