@@ -15,12 +15,12 @@ dependencies = [
     "starlette==1.7.0",
     "uvicorn==0.54.0",
     "schemdraw==0.23",
-    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.0#subdirectory=earned_time",
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.1#subdirectory=earned_time",
 ]
 
 [project.optional-dependencies]
 # httpx: Starlette's TestClient (the tutor's HTTP tests) needs it.
-dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.10", "gdtoolkit==4.5.0", "httpx==0.28.1"]
+dev = ["mypy==2.4.0", "pylint==4.1.2", "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.17.0", "gdtoolkit==4.5.0", "httpx==0.28.1"]
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -39,7 +39,9 @@ exclude = [".git", ".venv", "__pycache__", "build", "dist"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D203", "D213", "COM812", "ISC001", "S603"]
+ignore = [
+    "D203", "D213", "COM812", "ISC001", "S603",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = [
