@@ -106,7 +106,10 @@ function render(s) {
   const started = Boolean(s.session_id);
   if (s.session_id !== sessionId) {
     sessionId = s.session_id;
-    if (started && !$("text").value) $("text").value = localStorage.getItem(draftKey()) || "";
+    if (started && !$("text").value) {
+      $("text").value = localStorage.getItem(draftKey()) || "";
+      requestAnimationFrame(fitText);  // after the composer is unhidden
+    }
   }
   $("empty").hidden = started && !picking;
   $("switch").hidden = !started || picking;
@@ -156,8 +159,20 @@ $("start").addEventListener("click", async () => {
   if (await api("/api/start", { card_id: $("cards").value || null })) picking = false;
 });
 $("switch").addEventListener("click", () => { picking = true; $("empty").hidden = false; $("switch").hidden = true; });
+// Grow the answer box with its text; CSS caps it (max-height) and it scrolls.
+// Never below its six-row start, so an empty box keeps its size.
+let minTextHeight = 0;
+function fitText() {
+  const box = $("text");
+  if (box.offsetParent === null) return;  // hidden: nothing to measure
+  if (!minTextHeight) minTextHeight = box.offsetHeight;
+  box.style.height = "auto";
+  const border = box.offsetHeight - box.clientHeight;
+  box.style.height = `${Math.max(minTextHeight, box.scrollHeight + border)}px`;
+}
 $("text").addEventListener("input", () => {
   if (sessionId) localStorage.setItem(draftKey(), $("text").value);
+  fitText();
 });
 $("composer").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -170,6 +185,7 @@ $("composer").addEventListener("submit", async (e) => {
   $("text").readOnly = false;
   if (ok) {
     $("text").value = "";
+    fitText();
     localStorage.removeItem(`tutor-draft:${sentFrom}`);
   }
 });
