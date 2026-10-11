@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from claude_agent_sdk import ProcessError
 import pytest
@@ -87,6 +87,25 @@ def test_start_then_message(client: TestClient, rig: Rig) -> None:
     assert reply.status_code == 200
     texts = [m["text"] for m in reply.json()["messages"]]
     assert texts == ["Begin", "hello", "Next"]
+
+
+def test_message_passes_a_numeric_sent_at_only(
+    client: TestClient, rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[float | None] = []
+    real = rig.engine.reply
+
+    async def spy(
+        text: str, advance: float, msg_id: str, sent_at: float | None
+    ) -> dict[str, Any]:
+        seen.append(sent_at)
+        return await real(text, advance, msg_id, sent_at)
+
+    monkeypatch.setattr(rig.engine, "reply", spy)
+    client.post("/api/start", json={})
+    client.post("/api/message", json={"text": "a", "msg_id": "m1", "sent_at": 5})
+    client.post("/api/message", json={"text": "b", "msg_id": "m2", "sent_at": "x"})
+    assert seen == [5.0, None]
 
 
 def test_leaving_the_app_closes_the_model_session(rig: Rig) -> None:

@@ -22,7 +22,6 @@ SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 readonly REPO
-readonly PY="$REPO/.venv/bin/python"
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly DATA="${AUTOMATION_TUTOR_DATA:-$HOME/.local/share/automation_tutor}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
@@ -60,10 +59,9 @@ session_of() {
     curl -s -m 5 "http://127.0.0.1:$1/api/state" | jq -r '.session_id // empty' || true
 }
 
-# Start a server from $1 on port $2, detached into its own session; log to $3.
+# Start a server from $1 on port $2 in its own systemd unit; log to $3.
 launch() {
-    (cd "$1" && exec setsid -f "$PY" -m plc_lab.tutor --port "$2" \
-        >>"$3" 2>&1 </dev/null)
+    "$REPO/scripts/tutor_launch.sh" "$1" "$2" "$3"
 }
 
 # A port nothing listens on, so the smoke test can only ever talk to the release.

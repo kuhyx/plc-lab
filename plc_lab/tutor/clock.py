@@ -12,7 +12,8 @@ Time accrues in two kinds of gap:
   the reply arrives within :data:`REPLY_TIMEOUT` and is not low effort
   (tutor-flagged or deterministic filler); otherwise the gap earns nothing.
   It is measured from the *latest* tutor message; a reply with no unanswered
-  tutor message before it earns nothing.
+  tutor message before it earns nothing. A server restart inside the window
+  restarts it (the outage was not the learner's), up to :data:`OUTAGE_CAP`.
 * **Tutor gap** -- a credited reply to the next tutor message, capped at
   :data:`GENERATION_CAP` so a hung model cannot farm time. A reply that earned
   nothing earns no tutor gap either ("ok" -> tutor -> "ok" accrues zero).
@@ -31,12 +32,16 @@ sessions is the ledger's, not the clock's. Pure: no I/O, time is injected.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 from typing import Final
 
+from plc_lab.tutor.filler import is_filler
+
 # Long enough to think a design question through (kuhy, 2026-10-10: 3 min
-# cut off real thinking and forfeited the whole gap).
-REPLY_TIMEOUT: Final = 360.0
+# cut off real thinking; 2026-10-11: 6 min cut off a long answer).
+REPLY_TIMEOUT: Final = 600.0
+OUTAGE_CAP: Final = 3600.0  # a gap restarts excuse never earns more than this
+# How far back the page's first Send press may date a reply (its retry window).
+SEND_GRACE: Final = 300.0
 GENERATION_CAP: Final = 60.0
 UNIT_SECONDS: Final = 60.0  # one credited unit = one active minute
 MAX_UNITS: Final = 60  # per session; the daily cap is the ledger's
@@ -45,41 +50,12 @@ STALLED: Final = f"no reply for {REPLY_TIMEOUT // 60:.0f} min"
 LOW_EFFORT: Final = "low-effort reply"
 TUTOR_OVERDUE: Final = "tutor not responding"
 
-# Normalised (see normalise) replies that carry no engagement on their own.
-# fmt: off
-FILLER: Final = frozenset({
-    "", "?", "k", "kk", "ok", "oki", "okay", "ok ok", "ok thanks", "ok got it",
-    "yes ok", "ok yes", "ok sure", "sure", "fine", "cool", "nice", "great",
-    "got it", "gotcha", "i see", "right", "alright", "mhm", "hm", "um", "uh",
-    "idk", "i dont know", "dunno", "no idea", "whatever", "idc", "lol", "lmao",
-    "thanks", "thx", "ty", "continue", "go on", "next", "more", "and",
-})
-# fmt: on
-# Legitimate answers to an open check, filler otherwise.
-SHORT_ANSWERS: Final = frozenset({"yes", "no", "yep", "yeah", "ya", "nope", "y", "n"})
 
-_STRIP: Final = re.compile(r"[^\w\s?]")
-_REPEAT: Final = re.compile(r"(.)\1+")
-_SPACE: Final = re.compile(r"\s+")
-
-
-def normalise(text: str) -> str:
-    """Lowercase, drop punctuation but ``?``, squeeze runs ("okkk"/"hmmm"/"??")."""
-    stripped = _STRIP.sub("", text.lower()).replace("_", "")
-    squeezed = _REPEAT.sub(r"\1", stripped)
-    return _SPACE.sub(" ", squeezed).strip()
-
-
-_FILLER_NORMALISED: Final = frozenset(normalise(item) for item in FILLER)
-_SHORT_NORMALISED: Final = frozenset(normalise(item) for item in SHORT_ANSWERS)
-
-
-def is_filler(text: str, *, check_open: bool) -> bool:
-    """Whether ``text`` is deterministic filler; bare yes/no answers an open check."""
-    norm = normalise(text)
-    if norm in _SHORT_NORMALISED:
-        return not check_open
-    return norm in _FILLER_NORMALISED
+def reply_time(received: float, sent_at: float | None) -> float:
+    """When a reply was sent: the page's first Send press if within grace."""
+    if sent_at is not None and 0.0 <= received - sent_at <= SEND_GRACE:
+        return sent_at
+    return received
 
 
 @dataclass(frozen=True)
@@ -107,6 +83,7 @@ class _Turn:
     """Where the conversation stands: what is awaiting an answer."""
 
     tutor_at: float | None = None  # unanswered tutor message
+    restarted_at: float | None = None  # last server restart while it was open
     reply_at: float | None = None  # credited reply awaiting the tutor
     check_open: bool = False
 
@@ -142,7 +119,12 @@ class EngagementClock:
         if self._turn.reply_at is not None:
             self._accrue(min(t - self._turn.reply_at, GENERATION_CAP), t)
             self._turn.reply_at = None
-        self._turn.tutor_at = t
+        self._turn.tutor_at, self._turn.restarted_at = t, None
+
+    def server_restarted(self, t: float) -> None:
+        """The server came back at ``t``: an open reply window starts over."""
+        if self._turn.tutor_at is not None:
+            self._turn.restarted_at = t
 
     def user_reply(
         self,
@@ -154,14 +136,14 @@ class EngagementClock:
         """The learner replied at ``t``; ``low_effort`` is the tutor's verdict."""
         if self._turn.tutor_at is None:
             return
-        gap = t - self._turn.tutor_at
+        gap, late = t - self._turn.tutor_at, self._late(t)
         self._turn.tutor_at = None
         if low_effort or is_filler(text, check_open=self._turn.check_open):
             self._paused_reason = LOW_EFFORT
             return
         # A substantive reply earns the tutor's answer time even when late.
         self._turn.reply_at = t
-        if gap > REPLY_TIMEOUT:
+        if late:
             self._paused_reason = STALLED
             return
         self._paused_reason = None
@@ -205,7 +187,7 @@ class EngagementClock:
         reason = self._paused_reason
         turn = self._turn
         if now is not None and turn.tutor_at is not None:
-            reason = STALLED if now - turn.tutor_at > REPLY_TIMEOUT else None
+            reason = STALLED if self._late(now) else None
         elif now is not None and turn.reply_at is not None:
             reason = TUTOR_OVERDUE if now - turn.reply_at > GENERATION_CAP else None
         return {
@@ -214,6 +196,12 @@ class EngagementClock:
             "paused": reason is not None,
             "paused_reason": reason,
         }
+
+    def _late(self, t: float) -> bool:
+        """Whether ``t`` is past the open window (restarted by a server restart)."""
+        opened = self._turn.tutor_at or 0.0
+        since = self._turn.restarted_at or opened
+        return t - since > REPLY_TIMEOUT or t - opened > OUTAGE_CAP
 
     def _accrue(self, seconds: float, t: float) -> None:
         """Add a non-negative gap, then see whether it completed a unit."""

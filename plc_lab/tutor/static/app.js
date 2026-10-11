@@ -188,16 +188,23 @@ $("text").addEventListener("input", () => {
   if (sessionId) localStorage.setItem(draftKey(), $("text").value);
   fitText();
 });
+// The first Send press of the text in the box (unix s): a send that has to be
+// retried through a server restart is timed from the press, not the arrival.
+let sentAt = null;
 $("composer").addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = $("text").value.trim();
   if (!text || $("text").readOnly) return;
+  sentAt ??= Date.now() / 1000;
   // The text stays in the box until the server has it; a failed send keeps it.
   $("text").readOnly = true;
   const sentFrom = sessionId;
-  const ok = await api("/api/message", { text, advance_s: simulate ? Number(simulate) : 0, msg_id: crypto.randomUUID() });
+  const ok = await api("/api/message", {
+    text, advance_s: simulate ? Number(simulate) : 0, msg_id: crypto.randomUUID(), sent_at: sentAt,
+  });
   $("text").readOnly = false;
   if (ok) {
+    sentAt = null;
     $("text").value = "";
     fitText();
     localStorage.removeItem(`tutor-draft:${sentFrom}`);

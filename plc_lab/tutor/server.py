@@ -81,7 +81,10 @@ def create_app(
         if not text:
             return JSONResponse({"error": "empty message"}, status_code=400)
         msg_id = str(body.get("msg_id", ""))[:64]
-        return await _guard(eng.reply(text, float(body.get("advance_s", 0)), msg_id))
+        sent = body.get("sent_at")
+        sent_at = float(sent) if isinstance(sent, (int, float)) else None
+        advance = float(body.get("advance_s", 0))
+        return await _guard(eng.reply(text, advance, msg_id, sent_at))
 
     async def media(request: Request) -> Response:
         name = request.path_params["name"]

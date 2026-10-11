@@ -13,7 +13,6 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO
-readonly PY="$REPO/.venv/bin/python"
 readonly PORT="${TUTOR_PORT:-8778}"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
@@ -47,8 +46,8 @@ start_server() {
         return
     fi
     mkdir -p "$LOG_DIR"
-    (cd "$LIVE_ROOT/current" && exec setsid -f "$PY" -m plc_lab.tutor \
-        --port "$PORT" >>"$LOG_DIR/server.log" 2>&1 </dev/null)
+    "$REPO/scripts/tutor_launch.sh" "$LIVE_ROOT/current" "$PORT" \
+        "$LOG_DIR/server.log"
 }
 
 main() {

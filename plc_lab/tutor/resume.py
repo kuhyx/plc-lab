@@ -109,6 +109,18 @@ def _replay_next_card(conv: Conversation, event: dict[str, Any]) -> None:
         conv.switch_card(str(event.get("card", "")), str(ui.get("text", "")))
 
 
+def _replay_note(conv: Conversation, event: dict[str, Any]) -> None:
+    """An event that leaves any pending learner message as it is."""
+    kind = event.get("type")
+    if kind == "card_done_manual":
+        conv.set_done(str(event.get("card", "")), done=bool(event.get("done")))
+    elif kind == "resume":
+        conv.clock.server_restarted(_time(event))
+    elif kind == "credit":
+        row = {k: v for k, v in event.items() if k not in {"type", "logged_at"}}
+        conv.receipts.append(row)
+
+
 def replay(path: Path) -> Replayed | None:
     """Rebuild the state from ``path``; ``None`` if nothing resumable is in it.
 
@@ -135,13 +147,10 @@ def replay(path: Path) -> Replayed | None:
         elif kind == "next_card":
             pending = None  # a failed reply belongs to the card left behind
             _replay_next_card(conv, event)
-        elif kind == "card_done_manual":
-            conv.set_done(str(event.get("card", "")), done=bool(event.get("done")))
         elif kind == "stop":
             conv.stopped, pending = True, None
-        elif kind == "credit":
-            row = {k: v for k, v in event.items() if k not in {"type", "logged_at"}}
-            conv.receipts.append(row)
+        else:
+            _replay_note(conv, event)
     if not conv.messages:
         return None
     return Replayed(conv, conv.clock.ready_blocks())

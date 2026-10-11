@@ -19,7 +19,7 @@ import uuid
 from plc_lab import cards as cards_mod
 from plc_lab.tutor import backfill, credit, media, repair, resume, unit_credit
 from plc_lab.tutor.cardflow import CardFlow
-from plc_lab.tutor.clock import EngagementClock
+from plc_lab.tutor.clock import EngagementClock, reply_time
 from plc_lab.tutor.conversation import Conversation
 from plc_lab.tutor.prompt import engine_note, system_prompt, wrap_learner
 from plc_lab.tutor.session import TutorSession, isolated_options
@@ -156,26 +156,38 @@ class Engine(CardFlow):
         if state is None or conv is None or card is None or conv.stopped:
             return False
         self.card, self._conv = card, conv
-        self._set_today(unit_credit.minutes_today(conv.receipts))
+        # max: backfill_today may already have paid more than these receipts saw.
+        self._set_today(
+            max(self.minutes_today, unit_credit.minutes_today(conv.receipts))
+        )
         self._session = self._factory(system_prompt(card, self.store.mastered()))
         conv.resumed.note = resume.primer(conv.messages)
-        self.store.log(self.session_id, {"type": "resume"})
+        conv.clock.server_restarted(self.time())
+        self.store.log(self.session_id, {"type": "resume", "t": self.time()})
         # Top-up: minutes no row paid yet; a span's entry id is deterministic,
         # so a retry rewrites the same row and never doubles.
         self._record(state.unrecorded)
         return True
 
     async def reply(
-        self, text: str, advance_s: float = 0.0, msg_id: str = ""
+        self,
+        text: str,
+        advance_s: float = 0.0,
+        msg_id: str = "",
+        sent_at: float | None = None,
     ) -> dict[str, Any]:
-        """The learner answers; returns the new state (a resent ``msg_id``: no-op)."""
+        """The learner answers; returns the new state (a resent ``msg_id``: no-op).
+
+        ``sent_at`` is the page's first Send press, so a send the page had to
+        retry through a restart is timed from the press (``clock.reply_time``).
+        """
         async with self._lock:
             _, conv, _ = self._live()
             if msg_id and msg_id == conv.resumed.answered_id:
                 return self.state()
             if self.simulated:
                 self._offset += max(0.0, advance_s)
-            await self._turn(text, learner_text=text, msg_id=msg_id)
+            await self._turn(text, learner_text=text, msg_id=msg_id, sent_at=sent_at)
             conv.resumed.answered_id = msg_id
         return self.state()
 
@@ -193,11 +205,16 @@ class Engine(CardFlow):
         return self._session, self._conv, self.card
 
     async def _turn(
-        self, prompt_text: str, *, learner_text: str | None, msg_id: str = ""
+        self,
+        prompt_text: str,
+        *,
+        learner_text: str | None,
+        msg_id: str = "",
+        sent_at: float | None = None,
     ) -> None:
         session, conv, _ = self._live()
         resume.reprime(conv, session.restarts)
-        t_learner = self.time()
+        t_learner = reply_time(self.time(), sent_at)
         active = conv.clock.active_seconds
         note = engine_note(
             active,
