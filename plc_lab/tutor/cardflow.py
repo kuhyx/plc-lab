@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Final
 
-from plc_lab.tutor import unit_credit
+from plc_lab.tutor import gating, unit_credit
 
 if TYPE_CHECKING:
     import asyncio
@@ -73,14 +73,14 @@ class CardFlow:
         One card, one session (kuhy, 2026-10-10): the transcript, URL and
         history row each stay about a single card. The ended session logs the
         choice (``next_card``) and a ``stop``, so it is never resumed. Raises
-        ``ValueError`` when no card is left, before anything changes.
+        ``ValueError`` when no card is left, before anything changes. Locked
+        cards (``gating``) are skipped, so a session resumed on a card that
+        became locked steers to the first open one.
         """
         async with self._lock:
             _, conv, card = self._live()
             done = self.store.progress()["cards_done"]
-            nxt = next(
-                (c for c in self.deck if c.id not in done and c.id != card.id), None
-            )
+            nxt = gating.first_open(self.deck, done, skip=card.id)
             if nxt is None:  # before anything changes: the session stays intact
                 msg = "no unfinished card left"
                 raise ValueError(msg)
@@ -101,17 +101,21 @@ class CardFlow:
     async def set_card_done(self, card_id: str, *, done: bool) -> dict[str, Any]:
         """Manual override: mark ``card_id`` done (or not); never touches credit.
 
-        Raises ``ValueError`` for a card not in the deck. Done on the live card
-        opens the Next card / Stop here choice, like the tutor's own
+        Raises ``ValueError`` for a card not in the deck, and for marking a
+        locked card done (marking one not done is always allowed). Done on the
+        live card opens the Next card / Stop here choice, like the tutor's own
         ``card_done``. Logged in the live transcript when the card belongs to it.
         """
         async with self._lock:
-            if not any(c.id == card_id for c in self.deck):
+            card = next((c for c in self.deck if c.id == card_id), None)
+            if card is None:
                 msg = f"unknown card {card_id!r}"
                 raise ValueError(msg)
+            progress = self.store.progress()["cards_done"]
             conv = self._conv
             if done:
-                was = self.store.progress()["cards_done"].get(card_id) or {}
+                gating.refuse_locked(card, progress, "mark done")
+                was = progress.get(card_id) or {}
                 sid = conv.session_id if conv else str(was.get("session", "manual"))
                 self.store.finish_card(card_id, sid)
             else:
@@ -148,7 +152,16 @@ class CardFlow:
         if not turn.low_effort and turn.concepts_mastered:
             names = [c.strip().lower() for c in turn.concepts_mastered if c.strip()]
             message["mastered_new"] = self.store.master(names, card.id, self.session_id)
-        if turn.card_done:  # the tutor's word is enough (b193: a gate dropped it)
+        # Only a card_done reads progress.json: most turns end nothing.
+        need = (
+            gating.missing(card, self.store.progress()["cards_done"])
+            if turn.card_done
+            else []
+        )
+        if need:  # locked: logged as refused, so replay and repair skip it
+            logged["card_done"], logged["card_done_refused"] = False, need
+            conv.notes.append(gating.refused_note(card, need))
+        elif turn.card_done:  # the tutor's word is enough (b193: a gate dropped it)
             if conv.mark_card_done():
                 self.store.finish_card(card.id, self.session_id)
             message["card_done"] = True

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "lang-ld-describe",
+    "front": "Describe Ladder Diagram (LD), the IEC 61131-3 PLC programming language.",
+    "back": "A graphical language that draws the program like the circuit diagram of relay logic hardware.",
+    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
+    "excerpt": "Ladder logic has evolved into a programming language that represents a program by a graphical diagram based on the circuit diagrams of relay logic hardware."
+  },
+  {
+    "id": "lang-ld-name",
+    "front": "Which IEC 61131-3 language draws the program as a diagram modelled on the circuit diagrams of relay logic hardware?",
+    "back": "Ladder Diagram (LD), also called ladder logic.",
+    "source": "https://en.wikipedia.org/wiki/Ladder_logic",
+    "excerpt": "Ladder logic has evolved into a programming language that represents a program by a graphical diagram based on the circuit diagrams of relay logic hardware."
+  },
+  {
+    "id": "lang-fbd-describe",
+    "front": "Describe Function Block Diagram (FBD), the IEC 61131-3 PLC programming language.",
+    "back": "A graphical language that builds a function from elementary blocks, with input and output variables wired to the blocks by connection lines.",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "A function is described as a set of elementary blocks. Input and output variables are connected to blocks by connection lines."
+  },
+  {
+    "id": "lang-fbd-name",
+    "front": "Which IEC 61131-3 language describes a function as elementary blocks, joined to its input and output variables by connection lines?",
+    "back": "Function Block Diagram (FBD).",
+    "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
+    "excerpt": "The function block diagram ( FBD ) is a graphical language for programmable logic controller design, that can describe the function between input variables and output variables."
+  },
+  {
+    "id": "lang-st-describe",
+    "front": "Describe Structured Text (ST), the IEC 61131-3 PLC programming language.",
+    "back": "A high-level, block-structured textual language whose syntax resembles Pascal, the language it is based on.",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "It is a high-level language that is block structured and syntactically resembles Pascal , on which it is based."
+  },
+  {
+    "id": "lang-st-name",
+    "front": "Which IEC 61131-3 language is a high-level, block-structured text language with Pascal-like syntax?",
+    "back": "Structured Text (ST).",
+    "source": "https://en.wikipedia.org/wiki/Structured_text",
+    "excerpt": "Structured text , abbreviated as ST or STX , is one of the five languages supported by the IEC 61131-3 standard, designed for programmable logic controllers (PLCs). It is a high-level language that is block structured"
+  },
+  {
+    "id": "lang-sfc-describe",
+    "front": "Describe Sequential Function Chart (SFC), the IEC 61131-3 PLC programming language.",
+    "back": "A chart language that splits a process into steps with actions, linked to each other by transitions that carry logic conditions.",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "Main components of SFC are: Steps with associated actions; Transitions with associated logic conditions; Directed links between steps and transitions."
+  },
+  {
+    "id": "lang-sfc-name",
+    "front": "Which IEC 61131-3 language programs a process as steps with actions, linked by transitions that carry logic conditions?",
+    "back": "Sequential Function Chart (SFC).",
+    "source": "https://en.wikipedia.org/wiki/Sequential_function_chart",
+    "excerpt": "Main components of SFC are: Steps with associated actions; Transitions with associated logic conditions; Directed links between steps and transitions."
+  },
+  {
+    "id": "lang-il-describe",
+    "front": "Describe Instruction List (IL), the IEC 61131-3 PLC programming language.",
+    "back": "A low-level textual PLC language that resembles assembly.",
+    "source": "https://en.wikipedia.org/wiki/Instruction_list",
+    "excerpt": "It is designed for programmable logic controllers (PLCs). It is a low level language and resembles assembly"
+  },
+  {
+    "id": "lang-il-name",
+    "front": "Which IEC 61131-3 language is low-level text that resembles assembly?",
+    "back": "Instruction List (IL).",
+    "source": "https://en.wikipedia.org/wiki/Instruction_list",
+    "excerpt": "is one of the 5 languages supported by the initial versions of IEC 61131-3 standard, and subsequently deprecated in the third edition. It is designed for programmable logic controllers (PLCs). It is a low level language and resembles assembly"
+  }
+]

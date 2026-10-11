@@ -78,7 +78,7 @@ def test_every_card_done_leaves_nothing_to_start(tmp_path: Path) -> None:
     for card in engine.deck:
         engine.store.finish_card(card.id, "s")
     assert all(c["done"] for c in engine.cards())
-    with pytest.raises(ValueError, match="unknown card None"):
+    with pytest.raises(ValueError, match="no unfinished card left"):
         asyncio.run(engine.start())
 
 

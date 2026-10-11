@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Final
 import uuid
 
 from plc_lab import cards as cards_mod
-from plc_lab.tutor import backfill, credit, media, repair, resume, unit_credit
+from plc_lab.tutor import backfill, credit, gating, media, repair, resume, unit_credit
 from plc_lab.tutor.cardflow import CardFlow
 from plc_lab.tutor.clock import EngagementClock, reply_time
 from plc_lab.tutor.conversation import Conversation
@@ -98,24 +98,19 @@ class Engine(CardFlow):
         self._minutes = (credit.local_day(self.time())[0], minutes)
 
     def cards(self) -> list[dict[str, Any]]:
-        """Every card with whether it is done, for the picker."""
-        done = self.store.progress()["cards_done"]
-        return [
-            {"id": c.id, "front": c.front, "topic": c.topic.title, "done": c.id in done}
-            for c in self.deck
-        ]
+        """Every card, done or not, and what still locks it (``gating``)."""
+        return gating.listing(self.deck, self.store.progress()["cards_done"])
 
     async def start(self, card_id: str | None = None) -> dict[str, Any]:
-        """Begin a session on ``card_id`` (default: first card not yet done)."""
+        """Begin a session on ``card_id`` (default: first open card not yet done).
+
+        An unknown or locked card raises ``ValueError`` before the live
+        session is touched.
+        """
         async with self._lock:
+            card = gating.pick(self.deck, self.store.progress()["cards_done"], card_id)
             if self._session is not None:
                 await self._session.close()
-            done = self.store.progress()["cards_done"]
-            pool = [c for c in self.deck if c.id == card_id] if card_id else self.deck
-            card = next((c for c in pool if card_id or c.id not in done), None)
-            if card is None:
-                msg = f"unknown card {card_id!r}"
-                raise ValueError(msg)
             self.card = card
             self._conv = Conversation(
                 session_id=f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}",

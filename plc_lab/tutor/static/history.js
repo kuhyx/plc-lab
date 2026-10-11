@@ -95,13 +95,36 @@ $("archived-toggle").addEventListener("click", () => {
 });
 
 // The start picker; re-fetched after a toggle so its "[done]" labels update.
+// A locked card (its required cards are not all done, gating.py) is a greyed,
+// disabled option, and the list under the picker says what each one still
+// needs (ids; the tooltip has their fronts). No new globals: one shared scope.
 async function loadCards() {
   const cards = await call("/api/cards");
+  const fronts = Object.fromEntries(cards.map((c) => [c.id, c.front]));
   const keep = $("cards").value;
   $("cards").replaceChildren(
     el("option", "", "Next unfinished card"),
-    ...cards.map((c) => { const o = el("option", "", `${c.done ? "[done] " : ""}${c.topic}: ${c.front}`); o.value = c.id; return o; }),
+    ...cards.map((c) => {
+      const tag = c.locked ? "[locked] " : c.done ? "[done] " : "";
+      const o = el("option", c.locked ? "locked" : "", `${tag}${c.topic}: ${c.front}`);
+      o.value = c.id;
+      o.disabled = c.locked;
+      return o;
+    }),
   );
   $("cards").firstChild.value = "";
-  $("cards").value = keep;
+  $("cards").value = cards.some((c) => c.id === keep && !c.locked) ? keep : "";
+  let box = document.getElementById("cards-locked");
+  if (!box) {
+    box = el("ul", "cards-locked");
+    box.id = "cards-locked";
+    box.setAttribute("aria-label", "Locked cards");
+    $("cards").after(box);
+  }
+  box.replaceChildren(...cards.filter((c) => c.locked).map((c) => {
+    const li = el("li", "", `Locked: ${c.front} - needs: ${c.missing.join(", ")}`);
+    li.title = `Finish first: ${c.missing.map((id) => fronts[id] || id).join(" | ")}`;
+    return li;
+  }));
+  box.hidden = !box.children.length;
 }

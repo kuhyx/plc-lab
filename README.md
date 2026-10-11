@@ -124,12 +124,15 @@ same board does); check it with one channel before wiring the rest.
 
 ## The deck
 
-`deck/<topic>.json` holds 157 cards across six topics: fundamentals,
-ladder logic, Structured Text/SFC, field devices, protocols and OT security.
-Each card has:
+`deck/<topic>.json` holds 167 cards across seven topics: fundamentals,
+the IEC 61131-3 languages, ladder logic, Structured Text/SFC, field devices,
+protocols and OT security. Each card has:
 
 - `source`: the URL it was written from.
 - `excerpt`: verbatim text from that page that supports the answer.
+- optionally `requires`: ids of cards that must be done first. The tutor
+  keeps such a card locked until then (it cannot be started or marked done);
+  Anki ignores the field.
 
 The answers are paraphrased. Only the excerpt is quoted, and it is shown with
 a link to its source.

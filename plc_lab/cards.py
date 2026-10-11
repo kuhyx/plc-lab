@@ -28,6 +28,7 @@ class Topic:
 
 TOPICS: Final = (
     Topic("fundamentals", "Fundamentals", ("fund-",)),
+    Topic("languages", "IEC 61131-3 languages", ("lang-",)),
     Topic("ladder", "Ladder logic", ("ld-",)),
     Topic("structured_text", "Structured Text and SFC", ("st-", "sfc-")),
     Topic("field_devices", "Field devices", ("io-",)),
@@ -35,6 +36,9 @@ TOPICS: Final = (
     Topic("ot_security", "OT security", ("sec-",)),
 )
 _KEYS: Final = frozenset({"id", "front", "back", "source", "excerpt"})
+# Optional: ids of cards that must be done before this one opens in the tutor.
+# Anki has no gating, so deck.py ignores it.
+_REQUIRES: Final = "requires"
 _MAX_FRONT_WORDS: Final = 25
 _MAX_BACK_WORDS: Final = 30
 _EXCERPT_WORDS: Final = (6, 40)
@@ -54,6 +58,7 @@ class Card:
     source: str
     excerpt: str
     topic: Topic
+    requires: tuple[str, ...] = ()
 
     @property
     def source_host(self) -> str:
@@ -67,14 +72,22 @@ def _words(text: str) -> int:
 
 def _validate(raw: object, topic: Topic, where: str) -> Card:
     """Build a card from one JSON object, or say exactly what is wrong."""
-    if not isinstance(raw, dict) or set(raw) != _KEYS:
-        msg = f"{where}: a card must be an object with exactly {sorted(_KEYS)}"
+    if not isinstance(raw, dict) or not _KEYS <= set(raw) <= _KEYS | {_REQUIRES}:
+        msg = (
+            f"{where}: a card must be an object with exactly {sorted(_KEYS)}"
+            f" and optionally {_REQUIRES!r}"
+        )
         raise CardError(msg)
     if not all(isinstance(raw[key], str) and raw[key].strip() for key in _KEYS):
         msg = f"{where}: every field must be a non-empty string"
         raise CardError(msg)
-    card = Card(topic=topic, **{key: raw[key].strip() for key in _KEYS})
+    requires = _requires(raw.get(_REQUIRES, []), where)
+    card = Card(
+        topic=topic, requires=requires, **{key: raw[key].strip() for key in _KEYS}
+    )
     problems = []
+    if card.id in card.requires:
+        problems.append("a card cannot require itself")
     if not card.id.startswith(topic.prefixes):
         problems.append(f"id must start with one of {topic.prefixes}")
     if urlsplit(card.source).scheme != "https" or not urlsplit(card.source).hostname:
@@ -90,6 +103,39 @@ def _validate(raw: object, topic: Topic, where: str) -> Card:
         msg = f"{where} ({card.id}): " + "; ".join(problems)
         raise CardError(msg)
     return card
+
+
+def _requires(raw: object, where: str) -> tuple[str, ...]:
+    """The optional ``requires`` list: distinct, non-empty card id strings."""
+    items = raw if isinstance(raw, list) else [None]
+    ids = tuple(i.strip() for i in items if isinstance(i, str) and i.strip())
+    if len(ids) != len(items) or len(set(ids)) != len(ids):
+        msg = f"{where}: {_REQUIRES} must be a list of distinct card ids"
+        raise CardError(msg)
+    return ids
+
+
+def _check_requires(cards: list[Card]) -> None:
+    """Every required id names a card of the deck, and no chain loops back."""
+    by_id = {card.id: card for card in cards}
+    for card in cards:
+        unknown = [i for i in card.requires if i not in by_id]
+        if unknown:
+            msg = f"{card.id} requires unknown card(s) {unknown}"
+            raise CardError(msg)
+    finished: set[str] = set()
+
+    def visit(card: Card, path: list[str]) -> None:
+        if card.id in path:
+            msg = "requires cycle: " + " -> ".join([*path, card.id])
+            raise CardError(msg)
+        if card.id not in finished:
+            for need in card.requires:
+                visit(by_id[need], [*path, card.id])
+            finished.add(card.id)
+
+    for card in cards:
+        visit(card, [])
 
 
 def load_topic(path: Path, topic: Topic) -> list[Card]:
@@ -116,4 +162,5 @@ def load_deck(deck_dir: Path) -> list[Card]:
             msg = f"duplicate card id {card.id}"
             raise CardError(msg)
         seen.add(card.id)
+    _check_requires(cards)
     return cards

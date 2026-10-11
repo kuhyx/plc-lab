@@ -136,3 +136,6 @@ button.ghost:hover, .flag:hover { color: var(--text); border-color: var(--text-m
 .chart-table { margin-top: var(--space-3); }
 .chart-table table { border-collapse: collapse; margin-top: var(--space-2); }
 .chart-table th, .chart-table td { padding: var(--space-1) var(--space-3); text-align: left; border-bottom: 1px solid var(--border); }
+/* Locked cards in the start picker: greyed and never startable (gating.py). */
+#cards option.locked, .cards-locked { color: var(--text-muted); }
+.cards-locked { margin: 0; padding-left: var(--space-3); font-size: 14px; max-width: 100%; }

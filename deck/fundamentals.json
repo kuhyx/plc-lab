@@ -81,7 +81,19 @@
     "front": "Name the five PLC programming languages defined by IEC 61131-3 up to its third edition.",
     "back": "Ladder Diagram (LD), Function Block Diagram (FBD), Structured Text (ST), Sequential Function Chart (SFC) and Instruction List (IL).",
     "source": "https://en.wikipedia.org/wiki/Function_block_diagram",
-    "excerpt": "The other supported languages are ladder logic , sequential function chart , structured text , and instruction list"
+    "excerpt": "The other supported languages are ladder logic , sequential function chart , structured text , and instruction list",
+    "requires": [
+      "lang-ld-describe",
+      "lang-ld-name",
+      "lang-fbd-describe",
+      "lang-fbd-name",
+      "lang-st-describe",
+      "lang-st-name",
+      "lang-sfc-describe",
+      "lang-sfc-name",
+      "lang-il-describe",
+      "lang-il-name"
+    ]
   },
   {
     "id": "fund-il-status",
