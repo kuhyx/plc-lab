@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 from plc_lab.tutor.clock import BlockReady, EngagementClock
 from plc_lab.tutor.conversation import Conversation
+from plc_lab.tutor.models import asked
 from plc_lab.tutor.prompt import wrap_learner
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ def _ui(turn: dict[str, Any]) -> dict[str, Any]:
     return {
         "role": "tutor",
         "text": turn.get("message", ""),
+        "questions": list(turn.get("questions") or []),
         "low_effort": bool(turn.get("low_effort")),
         "check": turn.get("check"),
         "check_result": turn.get("check_result"),
@@ -170,7 +172,9 @@ def primer(messages: list[dict[str, Any]]) -> str:
                 "LEARNER:\n" + wrap_learner(text.replace("</learner", "< /learner"))
             )
         else:
-            lines.append("TUTOR:\n" + text)
+            # The questions are boxes on the page, not part of the text.
+            boxes = "".join(f"\n- {q}" for q in asked(message))
+            lines.append("TUTOR:\n" + text + (f"\nQuestions:{boxes}" if boxes else ""))
     transcript = "\n\n".join(lines)
     return (
         "[app] The tutor app restarted in the middle of this session, so you are "

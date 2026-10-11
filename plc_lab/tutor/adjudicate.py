@@ -52,10 +52,16 @@ def load(path: Path) -> list[dict[str, Any]]:
     ]
 
 
+def _first_ask(tutor: list[dict[str, Any]]) -> str:
+    """The first turn's prose and its questions (they may sit in either)."""
+    head = tutor[0]["turn"] if tutor else {"message": ""}
+    return " ".join([head["message"], *(head.get("questions") or [])])
+
+
 def verdicts(events: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
     """``(item, passed, evidence)`` for acceptance items (a)-(h)."""
     tutor = [e for e in events if e["type"] == "tutor"]
-    first = tutor[0]["turn"]["message"] if tutor else ""
+    first = _first_ask(tutor)
     seen_terms = [t for t, rx in TERMS.items() if re.search(rx, first, re.IGNORECASE)]
     answer_at = next(
         (i for i, e in enumerate(tutor) if i and _ANSWER.search(e["turn"]["message"])),

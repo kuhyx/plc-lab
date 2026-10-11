@@ -7,13 +7,20 @@ from typing import Any
 
 import pytest
 
-from plc_lab.tutor.models import REQUIRED_FIELDS, TurnError, TutorTurn
+from plc_lab.tutor.models import (
+    REQUIRED_FIELDS,
+    TURN_SCHEMA,
+    TurnError,
+    TutorTurn,
+    asked,
+)
 
 
 def raw_turn(**overrides: Any) -> dict[str, Any]:
     """A valid decoded turn; any field can be overridden."""
     raw: dict[str, Any] = {
-        "message": "  What is a coil?  ",
+        "message": "  Coils, then.  ",
+        "questions": ["  What is a coil?  ", " ", 4],
         "low_effort": False,
         "check": {"question": "why?", "concept": "coil"},
         "check_result": {"passed": True, "feedback": "yes"},
@@ -28,7 +35,8 @@ def raw_turn(**overrides: Any) -> dict[str, Any]:
 
 def test_from_json_happy_path_strips_and_tuples() -> None:
     parsed = TutorTurn.from_json(raw_turn())
-    assert parsed.message == "What is a coil?"
+    assert parsed.message == "Coils, then."
+    assert parsed.questions == ("What is a coil?", "4")  # stripped, blanks dropped
     assert parsed.low_effort is False
     assert parsed.check == {"question": "why?", "concept": "coil"}
     assert parsed.check_result == {"passed": True, "feedback": "yes"}
@@ -78,3 +86,36 @@ def test_from_json_rejects_non_bool_low_effort(low: object) -> None:
 def test_from_json_rejects_bad_check_result(result: object) -> None:
     with pytest.raises(TurnError, match=r"check_result\.passed"):
         TutorTurn.from_json(raw_turn(check_result=result))
+
+
+@pytest.mark.parametrize("questions", ["What is a coil?", None, {"q": "x"}])
+def test_from_json_rejects_questions_that_are_not_a_list(questions: object) -> None:
+    with pytest.raises(TurnError, match="questions must be a list"):
+        TutorTurn.from_json(raw_turn(questions=questions))
+
+
+def test_schema_requires_questions_as_strings() -> None:
+    assert "questions" in REQUIRED_FIELDS
+    assert TURN_SCHEMA["required"] == list(REQUIRED_FIELDS)
+    properties = TURN_SCHEMA["properties"]
+    assert isinstance(properties, dict)
+    assert properties["questions"] == {
+        "type": "array",
+        "items": {"type": "string"},
+    }
+
+
+def test_turn_defaults_to_no_questions() -> None:
+    assert TutorTurn(message="hi", low_effort=False).questions == ()
+
+
+def test_asked_lists_own_questions_then_the_check() -> None:
+    message = {"questions": ["a?", "b?"], "check": {"question": "c?", "concept": "x"}}
+    assert asked(message) == ["a?", "b?", "c?"]
+
+
+def test_asked_reads_old_messages_without_questions() -> None:
+    # Logged before `questions` existed: no key; also a null or empty check.
+    assert asked({"text": "hi"}) == []
+    assert asked({"questions": None, "check": None}) == []
+    assert asked({"check": {"question": "", "concept": "x"}}) == []

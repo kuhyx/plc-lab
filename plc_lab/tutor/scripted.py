@@ -18,6 +18,7 @@ from typing import Any, Final
 import urllib.parse
 import urllib.request
 
+from plc_lab.tutor.models import asked
 from plc_lab.tutor.session import TutorSession, isolated_options
 
 LEARNER_MODEL: Final = "claude-haiku-5-5"
@@ -74,6 +75,7 @@ def _call(url: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
 def _page_notes(message: dict[str, Any]) -> str:
     """What the page shows beside the tutor's words (the learner model is text-only)."""
     notes = [f"[picture on the page: {i['title']}]" for i in message.get("images", [])]
+    notes += [f"[question box on the page: {q}]" for q in asked(message)]
     if message.get("diagrams"):
         notes.append(
             f"[circuit diagram on the page: {message.get('diagram_title', '')}]"

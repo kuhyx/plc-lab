@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 RAW_TURN = {
     "message": "What is a coil?",
+    "questions": [],
     "low_effort": False,
     "check": None,
     "check_result": None,
@@ -129,7 +130,7 @@ def test_ask_uses_structured_output(fake_client: type[FakeClient]) -> None:
 
 
 def test_ask_falls_back_to_json_text(fake_client: type[FakeClient]) -> None:
-    text = '{"message": "Hi", "low_effort": true, "check": null, "check_result": null, '
+    text = '{"message": "Hi", "questions": [], "low_effort": true, "check": null, "check_result": null, '
     text += (
         '"images": [], "diagram": null, "concepts_mastered": [], "card_done": false}'
     )

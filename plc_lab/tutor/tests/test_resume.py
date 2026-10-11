@@ -93,6 +93,34 @@ def test_tutor_event_without_a_turn_and_a_logged_at_time(tmp_path: Path) -> None
     assert state is not None
     assert state.conversation.messages[0]["text"] == ""
     assert state.conversation.messages[0]["low_effort"] is False
+    assert state.conversation.messages[0]["questions"] == []
+
+
+def test_questions_come_back_from_the_turn_or_its_logged_ui(tmp_path: Path) -> None:
+    # A ui logged before `questions` existed stays as logged (the page
+    # defaults it); a turn with no ui gets them from the turn.
+    events: list[dict[str, Any]] = [
+        {"type": "start", "card": "c", "t": T0},
+        tutor(T0, questions=["What is a coil?"]),
+        {**tutor(T0 + 1), "ui": {"role": "tutor", "text": "old"}},
+    ]
+    state = resume.replay(write(tmp_path / "s.jsonl", events))
+    assert state is not None
+    first, old = state.conversation.messages
+    assert first["questions"] == ["What is a coil?"]
+    assert "questions" not in old
+
+
+def test_primer_lists_the_questions_asked_in_boxes() -> None:
+    text = resume.primer(
+        [
+            {"role": "tutor", "text": "Two terms.", "questions": ["A?", "B?"]},
+            {"role": "learner", "text": "Q1: A?\nA: x"},
+            {"role": "tutor", "text": "Check.", "check": {"question": "C?"}},
+        ]
+    )
+    assert "TUTOR:\nTwo terms.\nQuestions:\n- A?\n- B?" in text
+    assert "TUTOR:\nCheck.\nQuestions:\n- C?" in text
 
 
 def test_every_earned_minute_is_unrecorded_until_the_ledger_says(

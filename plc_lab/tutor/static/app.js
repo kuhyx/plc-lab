@@ -50,7 +50,7 @@ function markdown(text) {
   return box;
 }
 
-function figure(img) {
+function commonsFigure(img) {  // not `figure`: progress.js has one, one shared scope
   const fig = el("figure");
   const pic = el("img");
   pic.src = `/media/${img.file}`;
@@ -83,7 +83,7 @@ function renderMessage(m, i, readOnly = false) {
     box.append(head);
   }
   box.append(markdown(m.text));
-  (m.images || []).forEach((i) => box.append(figure(i)));
+  (m.images || []).forEach((i) => box.append(commonsFigure(i)));
   if ((m.diagrams || []).length) {
     const row = el("div", "diagrams");
     m.diagrams.forEach((d) => { const i = el("img"); i.src = `/media/${d}`; i.alt = m.diagram_title || "circuit diagram"; row.append(i); });
@@ -93,7 +93,7 @@ function renderMessage(m, i, readOnly = false) {
     const c = el("div", `check ${m.check_result.passed ? "pass" : "fail"}`, `Check ${m.check_result.passed ? "passed" : "not yet"}: ${m.check_result.feedback || ""}`);
     box.append(c);
   }
-  if (m.check) box.append(el("div", "check", `Comprehension check: ${m.check.question}`));
+  if (readOnly || !qIsLive(i)) qAppendAsked(box, m);  // else they are boxes in #composer
   if (m.card_done) box.append(el("div", "check pass", "Card done ✓"));
   return box;
 }
@@ -134,8 +134,10 @@ function render(s) {
   });
   noteProgress(s);  // progress.js: a card done or a minute credited refreshes it
   if (!liveView(s)) return;  // a read-only past session stays on screen
-  renderLog(s.messages, false);
   const started = Boolean(s.session_id);
+  const choosing = started && Boolean(s.card_done) && !picking;  // Next card / Stop here
+  qSync(s, started && !choosing);  // questions.js: before renderLog, which asks qIsLive
+  renderLog(s.messages, false);
   if (s.session_id !== sessionId) {
     sessionId = s.session_id;
     refreshHistory();
@@ -144,7 +146,6 @@ function render(s) {
       requestAnimationFrame(fitText);  // after the composer is unhidden
     }
   }
-  const choosing = started && Boolean(s.card_done) && !picking;  // Next card / Stop here
   $("empty").hidden = started && !picking;
   $("switch").hidden = !started || picking;
   $("mark-done").hidden = !started || picking || !s.card || Boolean(s.card_done);
@@ -165,6 +166,7 @@ async function api(path, body) {
   } finally {
     $("busy").hidden = true;
     document.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+    qSyncSend();
   }
 }
 
@@ -194,21 +196,21 @@ $("text").addEventListener("input", () => {
 let sentAt = null;
 $("composer").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const text = $("text").value.trim();
+  const boxes = Boolean(qLive);  // question boxes (questions.js) or the plain box
+  const text = boxes ? qCompose() : $("text").value.trim();
   if (!text || $("text").readOnly) return;
   sentAt ??= Date.now() / 1000;
   // The text stays in the box until the server has it; a failed send keeps it.
-  $("text").readOnly = true;
+  qReadOnly(true);
   const sentFrom = sessionId;
   const ok = await api("/api/message", {
     text, advance_s: simulate ? Number(simulate) : 0, msg_id: crypto.randomUUID(), sent_at: sentAt,
   });
-  $("text").readOnly = false;
+  qReadOnly(false);
   if (ok) {
     sentAt = null;
-    $("text").value = "";
-    fitText();
-    localStorage.removeItem(`tutor-draft:${sentFrom}`);
+    if (boxes) qSent();
+    else { $("text").value = ""; fitText(); localStorage.removeItem(`tutor-draft:${sentFrom}`); }
   }
 });
 // Enter is a newline (answers are often code); Ctrl/Cmd+Enter sends, like the
@@ -230,7 +232,8 @@ function indentLines(box, dedent) {
   const total = changed.join("\n").length - lines.join("\n").length;
   box.setSelectionRange(Math.max(from, start + firstShift), end + total);
 }
-$("text").addEventListener("keydown", (e) => {
+// Also on every question box (questions.js).
+function composerKeys(e) {
   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     $("composer").requestSubmit();
@@ -242,4 +245,5 @@ $("text").addEventListener("keydown", (e) => {
   e.preventDefault();
   indentLines(e.target, e.shiftKey);
   e.target.dispatchEvent(new Event("input"));  // the draft autosave
-});
+}
+$("text").addEventListener("keydown", composerKeys);

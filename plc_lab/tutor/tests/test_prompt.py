@@ -49,6 +49,30 @@ def test_a_check_question_is_never_repeated_in_the_message() -> None:
     assert "its question appears only there, never also in `message`" in text
 
 
+def test_every_question_goes_in_questions_never_in_the_message() -> None:
+    # 2026-10-11: several questions per turn sat in the prose and the learner
+    # had to copy each one out to answer it.
+    text = " ".join(system_prompt(CARD, []).split())
+    assert "EVERY question or task for the learner goes in `questions`" in text
+    assert "one per entry, and NEVER in `message`" in text
+    assert "one entry in `questions` per term" in text
+    assert "`questions` (each question or task, one per entry)" in text
+    assert "exactly one question" not in text
+
+
+def test_a_check_never_asks_more_than_the_card_front() -> None:
+    text = " ".join(system_prompt(CARD, []).split())
+    assert "A check never asks for more than the card's front asks" in text
+    assert '"Name the five languages"' in text
+    assert 'not "and describe each"' in text
+
+
+def test_image_check_keeps_questions_out_of_the_message() -> None:
+    _, ask = image_check(["search term 'a'"])
+    assert "put no question in `message`" in ask
+    assert "(`questions` too)" in ask
+
+
 def test_image_check_labels_each_picture() -> None:
     head, ask = image_check(["search term 'a', file 'x.jpg'", "search term 'b'"])
     assert "picture 1: search term 'a', file 'x.jpg'" in head

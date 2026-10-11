@@ -98,6 +98,14 @@ button.ghost:hover, .flag:hover { color: var(--text); border-color: var(--text-m
 /* No drag handle: the answer box grows with its text up to 60% of the screen,
    then scrolls (fitText in app.js). */
 #text { resize: none; overflow-y: auto; max-height: 60vh; }
+/* Question boxes (questions.js): each question quoted, its answer box under
+   it; the stack scrolls on its own so the log keeps its room. */
+.qboxes { align-self: stretch; display: flex; flex-direction: column; gap: var(--space-3); max-height: 55vh; overflow-y: auto; padding-right: var(--space-2); }
+.qfield { display: flex; flex-direction: column; gap: var(--space-1); }
+.qfield textarea { resize: none; overflow-y: auto; max-height: 40vh; }
+.question { margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); border-left: 4px solid var(--border); background: var(--bg); border-radius: var(--radius-sm); }
+.question-label { display: block; font-size: 13px; color: var(--accent); font-weight: 600; }
+.qfield > .question-label { color: var(--text-muted); font-weight: 400; }
 .composer-actions { display: flex; align-items: center; gap: var(--space-3); }
 .hint { font-size: 13px; color: var(--text-muted); }
 /* One column: chat on top keeps the room, the side panel below scrolls in a capped box. */
