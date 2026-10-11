@@ -26,6 +26,7 @@ _STR: Final = {"type": "string"}
 # own "required" list is inferred as ``object`` inside the nested dict).
 REQUIRED_FIELDS: Final[tuple[str, ...]] = (
     "message",
+    "questions",
     "low_effort",
     "check",
     "check_result",
@@ -71,6 +72,9 @@ TURN_SCHEMA: Final = {
     "type": "object",
     "properties": {
         "message": _STR,
+        # Each question or task for the learner, one per entry; the page gives
+        # every one its own answer box, so none is copied out of `message`.
+        "questions": {"type": "array", "items": _STR},
         "low_effort": {"type": "boolean"},
         "check": _nullable(
             {
@@ -108,6 +112,18 @@ TURN_SCHEMA: Final = {
 }
 
 
+def asked(message: dict[str, Any]) -> list[str]:
+    """Every question a page message puts to the learner: its own, then the check.
+
+    Messages logged before ``questions`` existed have none of their own.
+    """
+    found = [str(q) for q in message.get("questions") or []]
+    check = message.get("check")
+    if isinstance(check, dict) and check.get("question"):
+        found.append(str(check["question"]))
+    return found
+
+
 class TurnError(ValueError):
     """The model's reply does not match :data:`TURN_SCHEMA`."""
 
@@ -118,6 +134,7 @@ class TutorTurn:
 
     message: str
     low_effort: bool
+    questions: tuple[str, ...] = ()
     check: dict[str, str] | None = None
     check_result: dict[str, Any] | None = None
     images: tuple[str, ...] = ()
@@ -142,6 +159,9 @@ class TutorTurn:
         if not isinstance(raw["low_effort"], bool):
             msg = "low_effort must be a boolean"
             raise TurnError(msg)
+        if not isinstance(raw["questions"], list):
+            msg = "questions must be a list"
+            raise TurnError(msg)
         result = raw["check_result"]
         if result is not None and not (
             isinstance(result, dict) and isinstance(result.get("passed"), bool)
@@ -151,6 +171,7 @@ class TutorTurn:
         return cls(
             message=raw["message"].strip(),
             low_effort=raw["low_effort"],
+            questions=tuple(str(q).strip() for q in raw["questions"] if str(q).strip()),
             check=raw["check"],
             check_result=result,
             images=tuple(str(x) for x in raw["images"]),

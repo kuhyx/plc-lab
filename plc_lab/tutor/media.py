@@ -60,9 +60,12 @@ def image_key(image: dict[str, Any]) -> str:
 
 def page_message(turn: TutorTurn) -> dict[str, Any]:
     """The page message for a turn, before media is attached."""
+    # The check has its own box: a copy of it in `questions` would be a second.
+    check = (turn.check or {}).get("question")
     return {
         "role": "tutor",
         "text": turn.message,
+        "questions": [q for q in turn.questions if q != check],
         "low_effort": turn.low_effort,
         "check": turn.check,
         "check_result": turn.check_result,

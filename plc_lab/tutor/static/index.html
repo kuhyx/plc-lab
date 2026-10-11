@@ -82,6 +82,9 @@
       </div>
     </section>
     <form id="composer" hidden>
+      <!-- The latest tutor message's questions, one answer box each, plus a
+           comment box (questions.js); they stand in for #text while shown. -->
+      <div id="qboxes" class="qboxes" hidden></div>
       <textarea id="text" rows="6" placeholder="Your answer. Reason it out; guesses are welcome."></textarea>
       <div class="composer-actions">
         <span class="hint">Ctrl+Enter to send &middot; Tab indents</span>
@@ -114,6 +117,7 @@
 </div>
 <!-- Order matters: one shared global scope; net.js does startup, so it is last. -->
 <script src="/static/app.js"></script>
+<script src="/static/questions.js"></script>
 <script src="/static/session.js"></script>
 <script src="/static/history.js"></script>
 <script src="/static/report.js"></script>

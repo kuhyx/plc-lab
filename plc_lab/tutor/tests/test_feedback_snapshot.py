@@ -27,6 +27,7 @@ def test_media_and_optional_fields_are_carried() -> None:
         "images": [{"title": "Coil", "file": "ab.png", "page_url": "http://p"}],
         "diagrams": ["d.svg"],
         "diagram_title": "Ladder",
+        "questions": ["What is a coil?"],
         "check": {"q": 1},
         "check_result": {"passed": True},
         "low_effort": True,
@@ -37,6 +38,7 @@ def test_media_and_optional_fields_are_carried() -> None:
     ]
     assert shot["diagrams"] == ["/media/d.svg"]
     assert shot["diagram_title"] == "Ladder"
+    assert shot["questions"] == ["What is a coil?"]
     assert shot["check"] == {"q": 1}
     assert shot["check_result"] == {"passed": True}
     assert shot["low_effort"] is True

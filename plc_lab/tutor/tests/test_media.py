@@ -63,6 +63,16 @@ def commons(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     return found
 
 
+def test_page_message_carries_questions_but_not_a_copy_of_the_check() -> None:
+    check = {"question": "Why 24 V?", "concept": "coil"}
+    message = media.page_message(
+        turn("Look.", questions=("A?", "Why 24 V?"), check=check)
+    )
+    assert message["questions"] == ["A?"]  # the check has its own box
+    assert message["check"] == check
+    assert media.page_message(turn("Look."))["questions"] == []
+
+
 def test_guard_leaves_text_without_picture_words_alone() -> None:
     text = "A coil is wire wound round a core. What does current do in it?"
     assert unseen_picture_guard(text, diagram_shown=False) == text

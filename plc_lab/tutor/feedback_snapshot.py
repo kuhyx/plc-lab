@@ -36,7 +36,7 @@ def snapshot(messages: list[dict[str, Any]], index: int) -> dict[str, Any]:
     }
     if msg.get("diagram_title"):
         shot["diagram_title"] = msg["diagram_title"]
-    for key in ("check", "check_result", "low_effort"):
+    for key in ("questions", "check", "check_result", "low_effort"):
         if msg.get(key):
             shot[key] = msg[key]
     start = max(0, index - _CONTEXT_MESSAGES)
