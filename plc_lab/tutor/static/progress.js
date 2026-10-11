@@ -124,7 +124,7 @@ function showTip(root, cx, cy, text) {
 }
 const hideTip = (root) => root.querySelector(".tip")?.remove();
 
-function figure(title, note, chartNode) {
+function chartFigure(title, note, chartNode) {
   const fig = el("figure", "chart-fig");
   const cap = el("figcaption", "");
   cap.append(el("b", "", title), el("span", "muted", ` · ${note}`));
@@ -160,8 +160,8 @@ function renderProgressView(p) {
   $("progress-body").replaceChildren(
     stats,
     topics,
-    figure("Cards done", `running total, ${p.done} of ${p.total}`, chart(p.days, "cards_done_total", "line", { unit: "cards" })),
-    figure("Minutes credited per day", `${minutes} min since ${p.days[0].day}`, chart(p.days, "minutes", "bar", { cap: 60, unit: "min" })),
+    chartFigure("Cards done", `running total, ${p.done} of ${p.total}`, chart(p.days, "cards_done_total", "line", { unit: "cards" })),
+    chartFigure("Minutes credited per day", `${minutes} min since ${p.days[0].day}`, chart(p.days, "minutes", "bar", { cap: 60, unit: "min" })),
     dayTable(p.days),
   );
 }

@@ -42,8 +42,8 @@ USER_AGENT: Final = (
 _MIMES: Final = ("image/jpeg", "image/png", "image/svg+xml", "image/webp")
 _TAG: Final = re.compile(r"<[^>]+>")
 _TIMEOUT: Final = 20
-# The API host and the thumbnail host; a thumburl from the JSON is untrusted.
-_HOSTS: Final = frozenset({"commons.wikimedia.org", "upload.wikimedia.org"})
+# The API host and both thumbnail hosts; a thumburl from the JSON is untrusted.
+_HOSTS: Final = frozenset(f"{h}.wikimedia.org" for h in ("commons", "upload", "thumb"))
 _log = logging.getLogger(__name__)
 
 

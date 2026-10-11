@@ -65,6 +65,9 @@ def test_get_sends_user_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     assert seen == {"agent": images.USER_AGENT, "url": url, "timeout": 20}
     assert images._get("https://commons.wikimedia.org/w/api.php") == b"payload"
     assert seen["url"] == "https://commons.wikimedia.org/w/api.php"
+    thumb = "https://thumb.wikimedia.org/a/b.png"
+    assert images._get(thumb) == b"payload"
+    assert seen["url"] == thumb
 
 
 @pytest.mark.parametrize(
