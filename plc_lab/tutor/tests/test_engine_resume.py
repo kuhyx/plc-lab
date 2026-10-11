@@ -171,3 +171,17 @@ def test_backfill_credits_what_todays_transcripts_earned(tmp_path: Path) -> None
     assert path.read_text().count('"recorded": true') == 1
     make(tmp_path / "empty", FakeSession(), clock, credit_fn=paid).backfill_today()
     assert len(paid.calls) == 1
+
+
+def test_credited_minutes_reset_when_the_server_outlives_midnight(
+    tmp_path: Path,
+) -> None:
+    """A server started yesterday showed yesterday's 60/60 as today's credit."""
+    clock = ManualClock()
+    engine = make(tmp_path, FakeSession(*script()), clock)
+    asyncio.run(engine.start(CARD))
+    assert study_to_17_minutes(engine, clock)["credited_minutes"] == 17
+    clock.advance(24 * 3600)
+    state = engine.state()
+    assert state["credited_minutes"] == 0
+    assert state["session_credited_minutes"] == 17  # the receipts are history

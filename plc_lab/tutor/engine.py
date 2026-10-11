@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Final
 import uuid
 
 from plc_lab import cards as cards_mod
-from plc_lab.tutor import backfill, media, repair, resume, unit_credit
+from plc_lab.tutor import backfill, credit, media, repair, resume, unit_credit
 from plc_lab.tutor.cardflow import CardFlow
 from plc_lab.tutor.clock import EngagementClock
 from plc_lab.tutor.conversation import Conversation
@@ -60,7 +60,7 @@ class Engine(CardFlow):
         self._lock = asyncio.Lock()
         self.deck = cards_mod.load_deck(DECK_DIR)
         self.card: cards_mod.Card | None = None
-        self.minutes_today = 0
+        self._minutes = ("", 0)  # (local day, ledger total that day)
         self._session: TutorSession | None = None
         self._conv: Conversation | None = None
 
@@ -82,6 +82,20 @@ class Engine(CardFlow):
     def time(self) -> float:
         """The engine's clock (wall time plus any simulated skip)."""
         return self._now() + self._offset
+
+    @property
+    def minutes_today(self) -> int:
+        """Today's ledger total; 0 once the local day it was read on is over.
+
+        The server outlives midnight, so a bare counter that only ever grows
+        (``max``) would show yesterday's credit as today's.
+        """
+        day, minutes = self._minutes
+        return minutes if day == credit.local_day(self.time())[0] else 0
+
+    def _set_today(self, minutes: int) -> None:
+        """Record ``minutes`` as today's ledger total, stamped with today."""
+        self._minutes = (credit.local_day(self.time())[0], minutes)
 
     def cards(self) -> list[dict[str, Any]]:
         """Every card with whether it is done, for the picker."""
@@ -125,7 +139,7 @@ class Engine(CardFlow):
             self._credit,
             self.store.log,
         )
-        self.minutes_today = max(self.minutes_today, paid)
+        self._set_today(max(self.minutes_today, paid))
 
     def resume_latest(self) -> bool:
         """Pick today's newest session back up after a restart (see ``resume``).
@@ -142,7 +156,7 @@ class Engine(CardFlow):
         if state is None or conv is None or card is None or conv.stopped:
             return False
         self.card, self._conv = card, conv
-        self.minutes_today = unit_credit.minutes_today(conv.receipts)
+        self._set_today(unit_credit.minutes_today(conv.receipts))
         self._session = self._factory(system_prompt(card, self.store.mastered()))
         conv.resumed.note = resume.primer(conv.messages)
         self.store.log(self.session_id, {"type": "resume"})

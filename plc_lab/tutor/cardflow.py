@@ -37,7 +37,6 @@ class CardFlow:
         store: Store
         deck: list[cards_mod.Card]
         card: cards_mod.Card | None
-        minutes_today: int
         _session: TutorSession | None
         _conv: Conversation | None
         _lock: asyncio.Lock
@@ -47,6 +46,13 @@ class CardFlow:
         @property
         def session_id(self) -> str:
             """The live session's id (``Engine``)."""
+
+        @property
+        def minutes_today(self) -> int:
+            """Today's ledger total (``Engine``)."""
+
+        def _set_today(self, minutes: int) -> None:
+            """Stamp today's ledger total (``Engine``)."""
 
         @property
         def messages(self) -> list[dict[str, Any]]:
@@ -156,6 +162,6 @@ class CardFlow:
         """Credit the minutes a turn released: one ledger row per span of them."""
         for row in self._credit(units, self.session_id) if units else []:
             if row["recorded"]:
-                self.minutes_today = max(self.minutes_today, row["minutes_today"])
+                self._set_today(max(self.minutes_today, row["minutes_today"]))
             self.receipts.append(row)
             self.store.log(self.session_id, {"type": "credit", **row})
