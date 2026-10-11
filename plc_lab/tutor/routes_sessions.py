@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki. MIT License.
-"""Session routes: Next card, Stop here, card_done, history and archiving."""
+"""Session routes: Next card, Stop here, card_done, history, archiving, progress."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from plc_lab.tutor import history
+from plc_lab.tutor import credit, history, progress
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,6 +58,9 @@ def session_routes(eng: Engine, _guard: Guard, _json: ReadJson) -> list[Route]:
     async def archive(request: Request) -> Response:
         return await _archive(eng, await _json(request))
 
+    async def progress_view(_: Request) -> Response:
+        return JSONResponse(await run_in_threadpool(_progress, eng))
+
     return [
         Route("/api/next", next_card, methods=["POST"]),
         Route("/api/stop", stop, methods=["POST"]),
@@ -65,6 +68,7 @@ def session_routes(eng: Engine, _guard: Guard, _json: ReadJson) -> list[Route]:
         Route("/api/sessions", sessions),
         Route("/api/archive", archive, methods=["POST"]),
         Route("/api/session/{session_id}", session),
+        Route("/api/progress", progress_view),
     ]
 
 
@@ -111,3 +115,14 @@ async def _archive(eng: Engine, body: dict[str, Any]) -> Response:
     else:
         eng.store.unarchive(sid)
     return await _listed(eng)
+
+
+def _progress(eng: Engine) -> dict[str, Any]:
+    """The ``/api/progress`` reply: the deck summary and the per-day history."""
+    ids = {c.id for c in eng.deck}
+    done = {k: v for k, v in eng.store.progress()["cards_done"].items() if k in ids}
+    today = credit.local_day(eng.time())[0]
+    return {
+        **progress.deck_summary(eng.deck, set(done)),
+        "days": progress.timeline(done, progress.ledger_minutes_by_day(), today),
+    }

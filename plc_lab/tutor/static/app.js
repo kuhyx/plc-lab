@@ -132,6 +132,7 @@ function render(s) {
     $("toast").hidden = false;
     $("toast").textContent = `Credit NOT recorded: ${r.error}`;
   });
+  noteProgress(s);  // progress.js: a card done or a minute credited refreshes it
   if (!liveView(s)) return;  // a read-only past session stays on screen
   renderLog(s.messages, false);
   const started = Boolean(s.session_id);

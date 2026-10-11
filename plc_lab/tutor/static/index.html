@@ -90,6 +90,8 @@
     </form>
   </section>
   <aside class="side" aria-label="Progress">
+    <h2>Deck progress</h2>
+    <div id="deck-progress" class="muted">-</div>
     <h2>Target card</h2>
     <div id="card" class="muted">-</div>
     <div class="side-actions">
@@ -104,12 +106,19 @@
     <ul id="history-archived" class="history" hidden aria-label="Archived sessions"></ul>
   </aside>
 </main>
+<div id="progress-view" class="overlay" hidden role="dialog" aria-label="Progress over time">
+  <div class="overlay-panel">
+    <div class="overlay-head"><h2>Progress</h2><button id="progress-close" type="button">Close</button></div>
+    <div id="progress-body" class="muted">Loading...</div>
+  </div>
+</div>
 <!-- Order matters: one shared global scope; net.js does startup, so it is last. -->
 <script src="/static/app.js"></script>
 <script src="/static/session.js"></script>
 <script src="/static/history.js"></script>
 <script src="/static/report.js"></script>
 <script src="/static/wheel.js"></script>
+<script src="/static/progress.js"></script>
 <script src="/static/net.js"></script>
 </body>
 </html>

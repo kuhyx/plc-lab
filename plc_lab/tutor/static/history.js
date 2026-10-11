@@ -24,6 +24,7 @@ function cardRow(c) {
 async function setCardDone(cardId, done) {
   if (!(await api("/api/card_done", { card_id: cardId, done }))) return;
   refreshHistory();
+  refreshProgress();
   loadCards().catch((err) => showError(err));
   if (view !== "live") openHash();  // the past view re-reads its cards
 }
