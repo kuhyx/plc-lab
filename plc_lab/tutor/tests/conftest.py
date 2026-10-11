@@ -7,10 +7,12 @@ ledger), ``~/.cache`` or ``~/.claude`` can only ever land in ``tmp_path``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import urllib.request
 
 import pytest
+
+from plc_lab.tutor import images
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -36,3 +38,21 @@ def tutor_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("AUTOMATION_TUTOR_IMAGE_CACHE", str(tmp_path / "images"))
     monkeypatch.setattr(urllib.request, "urlopen", _offline)
     return tmp_path
+
+
+@pytest.fixture
+def commons(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """term -> CommonsImage, None, or an exception to raise."""
+    found: dict[str, Any] = {}
+
+    def fetch(term: str) -> Any:
+        hit = found[term]
+        if isinstance(hit, Exception):
+            raise hit
+        return hit
+
+    monkeypatch.setattr(images, "fetch", fetch)
+    monkeypatch.setattr(
+        images, "content_block", lambda img: {"type": "image", "file": img.file}
+    )
+    return found

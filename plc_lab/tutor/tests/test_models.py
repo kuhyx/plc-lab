@@ -13,6 +13,7 @@ from plc_lab.tutor.models import (
     TurnError,
     TutorTurn,
     asked,
+    image_requests,
 )
 
 
@@ -24,7 +25,12 @@ def raw_turn(**overrides: Any) -> dict[str, Any]:
         "low_effort": False,
         "check": {"question": "why?", "concept": "coil"},
         "check_result": {"passed": True, "feedback": "yes"},
-        "images": ["relay", 7],
+        "images": [
+            "relay",
+            7,
+            {"terms": [" PLC rack ", "rack", "", "a", "b"]},
+            {"terms": []},
+        ],
         "diagram": {"title": "t", "circuits": []},
         "concepts_mastered": ["coil", 3],
         "card_done": 1,
@@ -40,11 +46,26 @@ def test_from_json_happy_path_strips_and_tuples() -> None:
     assert parsed.low_effort is False
     assert parsed.check == {"question": "why?", "concept": "coil"}
     assert parsed.check_result == {"passed": True, "feedback": "yes"}
-    assert parsed.images == ("relay", "7")
+    assert parsed.images == (("relay",), ("7",), ("PLC rack", "rack", "a"))
     assert parsed.diagram == {"title": "t", "circuits": []}
     assert parsed.concepts_mastered == ("coil", "3")
     assert parsed.card_done is True
     assert parsed.extras == {}
+
+
+def test_image_requests_reads_old_and_new_forms() -> None:
+    assert image_requests(["relay", {"terms": ["a", "b"]}]) == (("relay",), ("a", "b"))
+    assert image_requests([{"nope": 1}, {"terms": "single"}, ""]) == (("single",),)
+    assert image_requests("relay") == ()
+    assert image_requests(None) == ()
+
+
+def test_schema_images_take_alternatives_and_old_strings() -> None:
+    properties: Any = TURN_SCHEMA["properties"]
+    images = properties["images"]
+    assert "NO limit" in images["description"]
+    kinds = [alt.get("type") for alt in images["items"]["anyOf"]]
+    assert kinds == ["object", "string"]
 
 
 def test_from_json_accepts_null_check_result() -> None:

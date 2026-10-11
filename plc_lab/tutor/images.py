@@ -21,29 +21,19 @@ from __future__ import annotations
 
 import base64
 from dataclasses import asdict, dataclass
-from functools import partial
 import hashlib
-import html
 import json
 import logging
 import os
 from pathlib import Path
-import re
+import threading
 import time
 from typing import Any, Final
-import urllib.parse
-import urllib.request
 
-API: Final = "https://commons.wikimedia.org/w/api.php"
-NEGATIVE_TTL: Final = 7 * 24 * 3600.0
-USER_AGENT: Final = (
-    "plc-lab-tutor/0.1 (https://github.com/kuhyx/plc-lab; local study tool)"
-)
-_MIMES: Final = ("image/jpeg", "image/png", "image/svg+xml", "image/webp")
-_TAG: Final = re.compile(r"<[^>]+>")
-_TIMEOUT: Final = 20
-# The API host and both thumbnail hosts; a thumburl from the JSON is untrusted.
-_HOSTS: Final = frozenset(f"{h}.wikimedia.org" for h in ("commons", "upload", "thumb"))
+from plc_lab.tutor import commons
+
+# A day: Commons gains files, and the model has up to three other wordings.
+NEGATIVE_TTL: Final = 24 * 3600.0
 _log = logging.getLogger(__name__)
 
 
@@ -72,95 +62,14 @@ class CommonsImage:
         return asdict(self)
 
 
-def _get(url: str) -> bytes:
-    """GET a Commons URL; anything but https on a Commons host raises ValueError.
-
-    Rebuilt on a literal ``https://``: no ``file:`` or custom scheme reaches urlopen.
-    """
-    parts = urllib.parse.urlsplit(url)
-    if parts.scheme != "https" or parts.hostname not in _HOSTS:
-        msg = f"not an https Commons URL: {url!r}"
-        raise ValueError(msg)
-    query = f"?{parts.query}" if parts.query else ""
-    with urllib.request.urlopen(
-        urllib.request.Request(
-            f"https://{parts.netloc}{parts.path}{query}",
-            headers={"User-Agent": USER_AGENT},
-        ),
-        timeout=_TIMEOUT,
-    ) as resp:
-        data: bytes = resp.read()
-    return data
-
-
-def _plain(value: str) -> str:
-    """Strip HTML from a Commons metadata field."""
-    return html.unescape(_TAG.sub("", value)).strip()
-
-
-def _meta(info: dict[str, Any], key: str) -> str:
-    return _plain(str(info.get("extmetadata", {}).get(key, {}).get("value", "")))
-
-
-def _tokens(text: str) -> set[str]:
-    """Lowercase word tokens with a trailing plural 's' folded away."""
-    return {w.removesuffix("s") for w in re.findall(r"[a-z0-9]{3,}", text.lower())}
-
-
-def _rank(term: str, page: dict[str, Any]) -> tuple[int, int]:
-    """Sort key: more whole query words in the title first, then Commons order."""
-    hits = len(_tokens(term) & _tokens(page["title"]))
-    return (-hits, page.get("index", 99))
-
-
-def _query(term: str) -> list[dict[str, Any]]:
-    """Image pages Commons returns for ``term`` (all words must match)."""
-    query = urllib.parse.urlencode(
-        {
-            "action": "query",
-            "format": "json",
-            "generator": "search",
-            "gsrsearch": f"{term} filetype:bitmap|drawing",
-            "gsrnamespace": "6",
-            "gsrlimit": "8",
-            "prop": "imageinfo",
-            "iiprop": "url|mime|extmetadata",
-            "iiurlwidth": "800",
-        }
-    )
-    data = json.loads(_get(f"{API}?{query}"))
-    return list(data.get("query", {}).get("pages", {}).values())
-
-
-def search(term: str) -> dict[str, Any] | None:
-    """Best image page for ``term``, or None.
-
-    Commons search needs every word to match, so a long term is shortened one
-    word at a time (down to two) until something comes back. A page only
-    counts if every query word appears whole in its title; otherwise a stemmed
-    near-miss ("electromagnetic radiations" for "electromagnet") would be
-    shown as if it were right.
-    """
-    words = term.split()
-    for count in range(len(words), max(1, min(2, len(words))) - 1, -1):
-        short = " ".join(words[:count])
-        ranked = sorted(_query(short), key=partial(_rank, short))
-        for page in ranked:
-            info = (page.get("imageinfo") or [{}])[0]
-            usable = info.get("mime") in _MIMES and info.get("thumburl")
-            if usable and -_rank(short, page)[0] >= len(_tokens(short)):
-                return {"title": page["title"], "info": info}
-    return None
-
-
 def _key(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
 def _write(path: Path, data: bytes) -> None:
-    """Write via a temp file + rename: other tutor processes share the cache."""
+    """Write via temp file + rename: other processes and threads share the cache."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     tmp.write_bytes(data)
     tmp.replace(path)
 
@@ -200,7 +109,7 @@ def fetch(
         _log.info("image cache hit %r -> %s", term, image.title if image else None)
         return image
     _log.info("image cache miss %r: searching Commons", term)
-    hit = search(term)
+    hit = commons.search(term)
     if hit is None:
         _remember(term, None, cache, now)
         return None
@@ -212,14 +121,14 @@ def fetch(
         _log.info("image file reused %r for %r", title, term)
     else:
         _log.info("image download %r", title)
-        _write(cache / name, _get(info["thumburl"]))
+        _write(cache / name, commons.get(info["thumburl"]))
     image = CommonsImage(
         term=term,
         title=title,
         file=name,
-        author=_meta(info, "Artist") or "see file page",
-        licence=_meta(info, "LicenseShortName") or "see file page",
-        licence_url=_meta(info, "LicenseUrl"),
+        author=commons.meta(info, "Artist") or "see file page",
+        licence=commons.meta(info, "LicenseShortName") or "see file page",
+        licence_url=commons.meta(info, "LicenseUrl"),
         page_url=info.get("descriptionurl", ""),
     )
     _remember(term, image, cache, now)
