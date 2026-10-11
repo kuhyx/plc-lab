@@ -70,7 +70,9 @@ def test_a_check_never_asks_more_than_the_card_front() -> None:
 def test_image_check_keeps_questions_out_of_the_message() -> None:
     _, ask = image_check(["search term 'a'"])
     assert "put no question in `message`" in ask
-    assert "(`questions` too)" in ask
+    assert "`questions` too" in ask
+    assert "alternatives for ONE picture" in ask
+    assert "never by the numbers above" in ask
 
 
 def test_image_check_labels_each_picture() -> None:
@@ -116,3 +118,13 @@ def test_engine_note_last_attempt_closes_the_check() -> None:
 
 def test_wrap_learner_fences_the_words() -> None:
     assert wrap_learner("hi") == "<learner>\nhi\n</learner>"
+
+
+def test_visuals_rule_demands_images_and_names_working_terms() -> None:
+    text = system_prompt(CARD, [])
+    assert "MUST request at least one image" in text
+    assert "NO cap" in text
+    assert '{"terms": [...]}' in text
+    for good in ("relay internal", "photoelectric switch", "remote io module"):
+        assert f'"{good}"' in text
+    assert '"relay cutaway"' not in text

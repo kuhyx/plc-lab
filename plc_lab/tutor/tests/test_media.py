@@ -3,64 +3,17 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
-import pytest
-
-from plc_lab.tutor import diagrams, images, media
-from plc_lab.tutor.clock import EngagementClock
-from plc_lab.tutor.conversation import Conversation
-from plc_lab.tutor.media import NO_PICTURE_NOTICE, unseen_picture_guard
+from plc_lab.tutor import diagrams, media
 from plc_lab.tutor.session import SessionError
-from plc_lab.tutor.store import Store
 from plc_lab.tutor.tests._fakes import FakeSession, turn
+from plc_lab.tutor.tests._media_support import DRAFT, live, log, picture, run
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from plc_lab.tutor.models import TutorTurn
-
-DRAFT = "The picture shows a coil on a nail. What happens when current flows?"
-
-
-def picture(term: str, title: str) -> images.CommonsImage:
-    return images.CommonsImage(
-        term, title, f"{title}.jpg", "A. Author", "CC BY", "", f"https://c/{title}"
-    )
-
-
-def live(tmp_path: Path, *replies: TutorTurn | Exception) -> media.Turn:
-    conv = Conversation("s1", "card", EngagementClock(0.0))
-    return media.Turn(FakeSession(*replies), conv, Store(tmp_path / "data"))
-
-
-def run(where: media.Turn, draft: TutorTurn) -> dict[str, Any]:
-    message = media.page_message(draft)
-    asyncio.run(media.attach(where, draft, message))
-    return message
-
-
-def log(where: media.Turn) -> str:
-    return (where.store.root / "sessions" / "s1.jsonl").read_text()
-
-
-@pytest.fixture
-def commons(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
-    """term -> CommonsImage, None, or an exception to raise."""
-    found: dict[str, Any] = {}
-
-    def fetch(term: str) -> Any:
-        hit = found[term]
-        if isinstance(hit, Exception):
-            raise hit
-        return hit
-
-    monkeypatch.setattr(images, "fetch", fetch)
-    monkeypatch.setattr(
-        images, "content_block", lambda img: {"type": "image", "file": img.file}
-    )
-    return found
+    import pytest
 
 
 def test_page_message_carries_questions_but_not_a_copy_of_the_check() -> None:
@@ -71,39 +24,6 @@ def test_page_message_carries_questions_but_not_a_copy_of_the_check() -> None:
     assert message["questions"] == ["A?"]  # the check has its own box
     assert message["check"] == check
     assert media.page_message(turn("Look."))["questions"] == []
-
-
-def test_guard_leaves_text_without_picture_words_alone() -> None:
-    text = "A coil is wire wound round a core. What does current do in it?"
-    assert unseen_picture_guard(text, diagram_shown=False) == text
-
-
-def test_guard_drops_sentences_that_mention_a_picture() -> None:
-    assert (
-        unseen_picture_guard(DRAFT, diagram_shown=False)
-        == "What happens when current flows?"
-    )
-    text = "See the photo.\n\nA relay is a switch.\n\nWhat moves it?"
-    assert unseen_picture_guard(text, diagram_shown=False) == (
-        "A relay is a switch.\n\nWhat moves it?"
-    )
-
-
-def test_guard_keeps_a_diagram_that_was_drawn() -> None:
-    text = "The diagram has two loops. Which one has the lamp?"
-    assert unseen_picture_guard(text, diagram_shown=True) == text
-    assert unseen_picture_guard(text, diagram_shown=False) == "Which one has the lamp?"
-
-
-def test_guard_appends_a_notice_when_stripping_would_lose_the_question() -> None:
-    text = "A relay is a switch. What do you see in the image?"
-    assert unseen_picture_guard(text, diagram_shown=False) == (
-        f"{text}\n\n{NO_PICTURE_NOTICE}"
-    )
-    only = "Look at this picture."
-    assert unseen_picture_guard(only, diagram_shown=False) == (
-        f"{only}\n\n{NO_PICTURE_NOTICE}"
-    )
 
 
 def test_no_media_requested_changes_nothing(tmp_path: Path) -> None:
@@ -136,20 +56,29 @@ def test_checked_pictures_ship_with_the_rewritten_text(
     tmp_path: Path, commons: dict[str, Any]
 ) -> None:
     commons.update(
-        {"coil": picture("coil", "Coil"), "relay": picture("relay", "Relay")}
+        {
+            "coil": picture("coil", "Coil"),
+            "relay": picture("relay", "Relay"),
+            "third": picture("third", "Third"),
+        }
     )
-    checked = turn("Picture 1 shows copper wire wound on a core. Why?", images=("1",))
+    checked = turn(
+        "Picture 1 shows copper wire wound on a core. Why?", images=(("1",),)
+    )
     where = live(tmp_path, checked)
-    message = run(where, turn(DRAFT, images=("coil", "relay", "third")))
+    # No cap: all three requests are looked up and offered in ONE check call.
+    message = run(where, turn(DRAFT, images=(("coil",), ("relay",), ("third",))))
     assert message["text"] == checked.message
     assert [i["title"] for i in message["images"]] == ["Coil"]
     assert isinstance(where.session, FakeSession)
     content = where.session.prompts[0]
     assert isinstance(content, list)
-    assert [b["type"] for b in content].count("image") == 2
+    assert [b["type"] for b in content].count("image") == 3
+    assert len(where.session.prompts) == 1
     assert where.conv.notes == [
         "image shown for 'coil': Coil",
         "image dropped after you looked at it for 'relay': Relay",
+        "image dropped after you looked at it for 'third': Third",
     ]
     assert '"kept": ["Coil"]' in log(where)
 
@@ -159,7 +88,7 @@ def test_search_misses_and_repeats_become_notes_and_the_draft_is_guarded(
 ) -> None:
     commons.update({"coil": OSError("timed out"), "relay": None})
     where = live(tmp_path)
-    message = run(where, turn(DRAFT, images=("coil", "relay")))
+    message = run(where, turn(DRAFT, images=(("coil",), ("relay",))))
     assert message["images"] == []
     assert message["text"] == "What happens when current flows?"
     assert where.conv.notes[:2] == [
@@ -173,7 +102,7 @@ def test_search_misses_and_repeats_become_notes_and_the_draft_is_guarded(
     commons["coil"] = shown
     where = live(tmp_path)
     where.conv.messages.append({"role": "tutor", "images": [shown.to_json()]})
-    message = run(where, turn("A coil is wound wire. Why?", images=("coil",)))
+    message = run(where, turn("A coil is wound wire. Why?", images=(("coil",),)))
     assert where.conv.notes == [
         "image for 'coil' not repeated: 'Coil' was already shown; refer back to it"
     ]
@@ -185,7 +114,7 @@ def test_failed_vision_check_ships_no_pictures_and_no_claim(
 ) -> None:
     commons["coil"] = picture("coil", "Coil")
     where = live(tmp_path, SessionError("model timed out"))
-    message = run(where, turn(DRAFT, images=("coil",)))
+    message = run(where, turn(DRAFT, images=(("coil",),)))
     assert message["images"] == []
     assert "picture" not in message["text"].lower()
     assert message["text"] == "What happens when current flows?"
@@ -199,7 +128,7 @@ def test_check_that_drops_every_picture_is_guarded_too(
     commons["coil"] = picture("coil", "Coil")
     rewrite = turn("Sadly the image is unclear. What does a coil do?", images=())
     where = live(tmp_path, rewrite)
-    message = run(where, turn(DRAFT, images=("coil",)))
+    message = run(where, turn(DRAFT, images=(("coil",),)))
     assert message["images"] == []
     assert message["text"] == "What does a coil do?"
 

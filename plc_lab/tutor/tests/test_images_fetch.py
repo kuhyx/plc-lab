@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from plc_lab.tutor import images
+from plc_lab.tutor import commons, images
 from plc_lab.tutor.images import NEGATIVE_TTL, CommonsImage
 
 if TYPE_CHECKING:
@@ -56,8 +56,8 @@ def make_hit(
 
 
 def wire(monkeypatch: pytest.MonkeyPatch, net: Net) -> None:
-    monkeypatch.setattr(images, "search", net.search)
-    monkeypatch.setattr(images, "_get", net.get)
+    monkeypatch.setattr(commons, "search", net.search)
+    monkeypatch.setattr(commons, "get", net.get)
 
 
 def test_fetch_downloads_and_credits(

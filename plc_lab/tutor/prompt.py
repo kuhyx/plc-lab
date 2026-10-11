@@ -33,7 +33,7 @@ def system_prompt(card: Card, mastered: list[str]) -> str:
 def image_check(labels: list[str]) -> tuple[str, str]:
     """Text around the pictures shown to the model before the learner sees them.
 
-    ``labels`` describe each picture in order ("search term 'x', file 'y'").
+    ``labels`` describe each picture in order ("request 1, search term 'x', file 'y'").
     Returns the text that goes before the pictures and the request after them.
     """
     listed = "\n".join(f"picture {i}: {label}" for i, label in enumerate(labels, 1))
@@ -51,9 +51,15 @@ def image_check(labels: list[str]) -> tuple[str, str]:
         "rewritten as the final text the learner reads. Refer only to kept "
         "pictures and describe concretely what is visible in them (no "
         '"should show", no guessing); if you keep none, do not mention '
-        "pictures. Keep the teaching point as it was and put no question in "
-        "`message`. Copy every other field (`questions` too) from your last "
-        "turn unchanged."
+        "pictures. Pictures with the same request number are alternatives for "
+        "ONE picture: keep at most one of them, the best. The learner sees "
+        "only the kept pictures, in order: call them the first, the second "
+        "picture, never by the numbers above, and say nothing of dropped "
+        "ones. Keep the teaching "
+        "point as it was and put no question in `message`. Copy every other "
+        "field from your last turn unchanged, `questions` too; the one change "
+        "allowed is rewording a question so it points at a kept picture "
+        '("What do you think this device is?").'
     )
     return head, ask
 

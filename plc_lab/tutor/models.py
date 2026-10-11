@@ -37,6 +37,23 @@ REQUIRED_FIELDS: Final[tuple[str, ...]] = (
 )
 
 
+MAX_ALTERNATIVES: Final = 3
+_IMAGE_REQUEST: Final = {
+    "type": "object",
+    "properties": {"terms": {"type": "array", "items": _STR}},
+    "required": ["terms"],
+    "additionalProperties": False,
+}
+_IMAGES_DOC: Final = (
+    "One entry per picture wanted, with NO limit on how many. Each entry is "
+    '{"terms": [...]}: 1 to 3 alternative Commons search terms for the SAME '
+    "thing, best first (2-3 plain words each); the app uses the first that "
+    "finds a picture you then approve. A plain string is one term. In the "
+    "picture-check reply instead: the numbers of the pictures to keep, as "
+    "strings."
+)
+
+
 def _nullable(schema: dict[str, Any]) -> dict[str, Any]:
     return {"anyOf": [schema, {"type": "null"}]}
 
@@ -92,7 +109,11 @@ TURN_SCHEMA: Final = {
                 "additionalProperties": False,
             }
         ),
-        "images": {"type": "array", "items": _STR},
+        "images": {
+            "type": "array",
+            "description": _IMAGES_DOC,
+            "items": {"anyOf": [_IMAGE_REQUEST, _STR]},
+        },
         "diagram": _nullable(
             {
                 "type": "object",
@@ -128,6 +149,24 @@ class TurnError(ValueError):
     """The model's reply does not match :data:`TURN_SCHEMA`."""
 
 
+def image_requests(raw: object) -> tuple[tuple[str, ...], ...]:
+    """The pictures a turn asks for, each as its alternative search terms.
+
+    Turns logged before alternatives existed hold plain strings (one term per
+    picture); both forms are read. Blank terms and empty requests are dropped
+    and a request keeps at most :data:`MAX_ALTERNATIVES` terms.
+    """
+    found = []
+    for item in raw if isinstance(raw, (list, tuple)) else ():
+        terms = item.get("terms", []) if isinstance(item, dict) else item
+        if not isinstance(terms, (list, tuple)):
+            terms = [terms]
+        kept = tuple(t for x in terms if (t := str(x).strip()))
+        if kept:
+            found.append(kept[:MAX_ALTERNATIVES])
+    return tuple(found)
+
+
 @dataclass(frozen=True)
 class TutorTurn:
     """One tutor turn, validated."""
@@ -137,7 +176,7 @@ class TutorTurn:
     questions: tuple[str, ...] = ()
     check: dict[str, str] | None = None
     check_result: dict[str, Any] | None = None
-    images: tuple[str, ...] = ()
+    images: tuple[tuple[str, ...], ...] = ()
     diagram: dict[str, Any] | None = None
     concepts_mastered: tuple[str, ...] = ()
     card_done: bool = False
@@ -174,7 +213,7 @@ class TutorTurn:
             questions=tuple(str(q).strip() for q in raw["questions"] if str(q).strip()),
             check=raw["check"],
             check_result=result,
-            images=tuple(str(x) for x in raw["images"]),
+            images=image_requests(raw["images"]),
             diagram=raw["diagram"],
             concepts_mastered=tuple(str(x) for x in raw["concepts_mastered"]),
             card_done=bool(raw["card_done"]),
