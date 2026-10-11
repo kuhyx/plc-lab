@@ -11,6 +11,8 @@
 # when its scope was torn down (2026-10-11, SIGTERM mid-answer). Falls back to
 # setsid where there is no user systemd (CI). AUTOMATION_TUTOR_* and PATH are
 # passed through, since a unit does not inherit the caller's environment.
+# AUTOMATION_TUTOR_DECK_SRC (the repo deck/ the card editor writes) is set by
+# the callers; unset or empty, the editor is read-only.
 # ============================================================================
 
 set -euo pipefail
@@ -22,7 +24,8 @@ readonly PY="$REPO/.venv/bin/python"
 main() {
     local dir="$1" port="$2" log="$3" var
     local -a env_args=(--setenv=PATH="$PATH")
-    for var in AUTOMATION_TUTOR_DATA AUTOMATION_TUTOR_KEY AUTOMATION_TUTOR_IMAGE_CACHE; do
+    for var in AUTOMATION_TUTOR_DATA AUTOMATION_TUTOR_KEY AUTOMATION_TUTOR_IMAGE_CACHE \
+        AUTOMATION_TUTOR_DECK_SRC; do
         if [[ -n "${!var:-}" ]]; then
             env_args+=(--setenv="$var=${!var}")
         fi

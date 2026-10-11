@@ -139,3 +139,29 @@ button.ghost:hover, .flag:hover { color: var(--text); border-color: var(--text-m
 /* Locked cards in the start picker: greyed and never startable (gating.py). */
 #cards option.locked, .cards-locked { color: var(--text-muted); }
 .cards-locked { margin: 0; padding-left: var(--space-3); font-size: 14px; max-width: 100%; }
+/* Card editor (editor.js): the #edit overlay, list and form. */
+.editor input { width: 100%; padding: var(--space-2); background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; }
+.editor select, .editor textarea { background: var(--bg); }
+.editor input[readonly], .editor textarea[readonly] { color: var(--text-muted); }
+.editor-banner { padding: var(--space-2) var(--space-3); border-left: 4px solid var(--warning); background: var(--bg); border-radius: var(--radius-sm); }
+.editor-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.editor-tools select, .editor-tools input { flex: 1 1 200px; width: auto; }
+.editor-count { font-size: 13px; margin: var(--space-2) 0; }
+.editor-list { list-style: none; padding: 0; margin: 0; max-height: 60vh; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.editor-item { display: flex; gap: var(--space-3); align-items: baseline; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+.editor-item:hover, .editor-item:focus-visible { background: var(--surface-2); }
+.editor-item > span:nth-child(2) { flex: 1; }
+.editor-item .muted { font-size: 13px; }
+.editor-id { font-family: var(--font-mono); font-size: 13px; color: var(--accent); flex: 0 0 200px; overflow-wrap: anywhere; }
+.editor-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.editor-title { font-size: 16px; margin: var(--space-3) 0 0; font-family: var(--font-mono); }
+.editor-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.editor-form label { font-size: 13px; color: var(--text-muted); }
+.editor-form label .error { color: var(--danger); }
+.editor-chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 0 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); font: 13px/1.8 var(--font-mono); }
+.chip button.small { border: 0; background: transparent; }
+.editor-need { display: flex; gap: var(--space-2); }
+.editor-status { margin: 0; min-height: 1.5em; }
+.editor-status.ok { color: var(--success); }
+.editor-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }

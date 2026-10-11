@@ -17,6 +17,8 @@ readonly PORT="${TUTOR_PORT:-8778}"
 readonly URL="http://127.0.0.1:$PORT/"
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
+# The card editor writes here (the repo deck), not only into the release copy.
+readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/deck}"
 OPEN=1
 
 usage() {
@@ -46,8 +48,8 @@ start_server() {
         return
     fi
     mkdir -p "$LOG_DIR"
-    "$REPO/scripts/tutor_launch.sh" "$LIVE_ROOT/current" "$PORT" \
-        "$LOG_DIR/server.log"
+    AUTOMATION_TUTOR_DECK_SRC="$DECK_SRC" "$REPO/scripts/tutor_launch.sh" \
+        "$LIVE_ROOT/current" "$PORT" "$LOG_DIR/server.log"
 }
 
 main() {

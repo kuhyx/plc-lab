@@ -17,8 +17,9 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from plc_lab.tutor import diagrams, feedback, feedback_snapshot, images
-from plc_lab.tutor.engine import Engine
+from plc_lab.tutor import deck_edit, diagrams, feedback, feedback_snapshot, images
+from plc_lab.tutor.engine import DECK_DIR, Engine
+from plc_lab.tutor.routes_editor import editor_routes
 from plc_lab.tutor.routes_sessions import session_routes
 from plc_lab.tutor.session import SessionError
 
@@ -56,9 +57,12 @@ _SAFE_NAME: Final = re.compile(r"^[0-9a-f]{16}(-\d)?\.(png|jpg|svg)$")
 
 
 def create_app(
-    engine: Engine | None = None, *, media_dirs: tuple[Path, Path] | None = None
+    engine: Engine | None = None,
+    *,
+    media_dirs: tuple[Path, Path] | None = None,
+    deck_dirs: deck_edit.Dirs | None = None,
 ) -> Starlette:
-    """Build the app; ``engine`` and ``media_dirs`` are injectable for tests."""
+    """Build the app; the engine and the media and deck dirs are injectable."""
     eng = engine or Engine()
     image_dir, diagram_dir = media_dirs or (images.cache_dir(), diagrams.cache_dir())
 
@@ -101,6 +105,7 @@ def create_app(
         Route("/api/start", start, methods=["POST"]),
         Route("/api/message", message, methods=["POST"]),
         *session_routes(eng, _guard, _json),
+        *editor_routes(eng, deck_dirs or deck_edit.Dirs.from_env(DECK_DIR), _json),
         Route("/api/feedback", _feedback_route(eng), methods=["POST"]),
         Route("/media/{name}", media),
         Mount("/static", _RevalidatedStatic(directory=STATIC)),

@@ -143,6 +143,15 @@ scripts/setup_dev.sh
 .venv/bin/python -m plc_lab build   # -> build/automation.apkg (Automation::<topic>)
 ```
 
+The tutor's **Edit cards** view (side panel, or `#edit` in its URL) edits a
+card's front, back, source, excerpt and `requires`, or adds a card to a
+topic. Ids are never editable and nothing is deleted. A save runs the
+same checks as `check` and `build` for that card, the 250-line cap included,
+and writes nothing if one fails. It writes `deck/<topic>.json` in this repo
+(`AUTOMATION_TUTOR_DECK_SRC`, which `run.sh` and `scripts/tutor_deploy.sh`
+set) and the live release's own copy too. It does not commit and does not
+push to Anki. Without the variable the view is read-only.
+
 `check` fetches each source once into `~/.cache/plc-lab/sources`, reduces it
 to plain text (PDFs go through `pdftotext`) and requires the excerpt to
 appear in it. `build` refuses to write a package while any excerpt is
