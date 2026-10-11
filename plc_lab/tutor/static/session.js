@@ -8,7 +8,7 @@ const ANCHOR_RE = /^m\d+$/;
 
 function parseHash() {
   const [first = "", second = ""] = location.hash.slice(1).split("/");
-  if (first === "progress") return { sid: "", anchor: "" };  // progress.js overlay
+  if (first === "progress" || first === "edit") return { sid: "", anchor: "" };  // overlays
   if (ANCHOR_RE.test(first)) return { sid: "", anchor: first };
   return { sid: first, anchor: ANCHOR_RE.test(second) ? second : "" };
 }
@@ -29,7 +29,7 @@ function clockStatus(s) {
 // "#m14" anchor is kept as "#<id>/m14". With no live session (after Stop
 // here) the hash keeps pointing at the stopped one, which reopens read-only.
 function syncHash(live) {
-  if (!live || location.hash === PROGRESS_HASH) return;
+  if (!live || location.hash === PROGRESS_HASH || /^#edit(\/|$)/.test(location.hash)) return;
   const { sid, anchor } = parseHash();
   const want = `#${live}${anchor && (!sid || sid === live) ? `/${anchor}` : ""}`;
   if (location.hash !== want) window.history.replaceState(null, "", want);
@@ -78,6 +78,8 @@ function showPast(data) {
 // Startup and every hashchange (a pasted URL, a history link, Back).
 async function openHash() {
   showProgressView(location.hash === PROGRESS_HASH);
+  const edit = location.hash.match(/^#edit(?:\/(.*))?$/);  // editor.js overlay
+  showCardEditor(edit ? decodeURIComponent(edit[1] || "") : null);
   const { sid } = parseHash();
   if (!sid || sid === lastState?.session_id) { showLive(); return; }
   view = sid;

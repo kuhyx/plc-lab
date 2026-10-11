@@ -25,6 +25,9 @@ readonly REPO
 readonly LIVE_ROOT="${TUTOR_LIVE_ROOT:-$HOME/.local/lib/automation-tutor-live}"
 readonly DATA="${AUTOMATION_TUTOR_DATA:-$HOME/.local/share/automation_tutor}"
 readonly LOG_DIR="${TUTOR_LOG_DIR:-$HOME/.local/state/automation_tutor}"
+# The card editor writes the repo deck (the source of truth, which the next
+# release copies) as well as the release's own copy; see plc_lab/tutor/deck_edit.py.
+readonly DECK_SRC="${AUTOMATION_TUTOR_DECK_SRC:-$REPO/deck}"
 SRC="$REPO"
 PORT=8778
 WAIT_LIMIT=300
@@ -103,8 +106,9 @@ smoke_test() {
         cp -r "$DATA/sessions" "$TEMP_DIR/data/"
     fi
     head -c 32 /dev/urandom >"$TEMP_DIR/key"
+    # No deck source: the smoke server's card editor stays read-only.
     AUTOMATION_TUTOR_DATA="$TEMP_DIR/data" AUTOMATION_TUTOR_KEY="$TEMP_DIR/key" \
-        launch "$release" "$port" "$TEMP_DIR/smoke.log"
+        AUTOMATION_TUTOR_DECK_SRC="" launch "$release" "$port" "$TEMP_DIR/smoke.log"
     if ! wait_listening "$port"; then
         echo "Smoke test: release did not start:" >&2
         tail -n 20 "$TEMP_DIR/smoke.log" >&2
@@ -192,7 +196,7 @@ main() {
         while kill -0 "$pid" 2>/dev/null; do sleep 0.1; done
     fi
     ln -sfn "$release" "$LIVE_ROOT/current"
-    launch "$release" "$PORT" "$LOG_DIR/server.log"
+    AUTOMATION_TUTOR_DECK_SRC="$DECK_SRC" launch "$release" "$PORT" "$LOG_DIR/server.log"
     wait_listening "$PORT" || { echo "Live server did not start" >&2; exit 1; }
     after="$(session_of "$PORT")"
     echo "Live on :$PORT from $release (pid $(port_pid "$PORT"))"
