@@ -28,7 +28,7 @@ Read README.md first. These are the invariants that are easy to break.
 ## Commands
 
 - run: `.venv/bin/python -m plc_lab build`
-- tutor: moved to `~/src/tutor`; `./run.sh` here only forwards to `~/src/tutor/run.sh` (i3 bar and control panel still call it)
+- tutor: moved to `~/src/tutor` (kuhyx/tutor); start it with `~/src/tutor/run.sh`
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
 - lint: `.venv/bin/ruff check . && .venv/bin/python -m mypy plc_lab`
