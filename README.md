@@ -131,8 +131,8 @@ protocols and OT security. Each card has:
 - `source`: the URL it was written from.
 - `excerpt`: verbatim text from that page that supports the answer.
 - optionally `requires`: ids of cards that must be done first. The tutor
-  keeps such a card locked until then (it cannot be started or marked done);
-  Anki ignores the field.
+  (now `~/src/tutor`) keeps such a card locked until then; Anki ignores the
+  field.
 
 The answers are paraphrased. Only the excerpt is quoted, and it is shown with
 a link to its source.
@@ -143,14 +143,10 @@ scripts/setup_dev.sh
 .venv/bin/python -m plc_lab build   # -> build/automation.apkg (Automation::<topic>)
 ```
 
-The tutor's **Edit cards** view (side panel, or `#edit` in its URL) edits a
-card's front, back, source, excerpt and `requires`, or adds a card to a
-topic. Ids are never editable and nothing is deleted. A save runs the
-same checks as `check` and `build` for that card, the 250-line cap included,
-and writes nothing if one fails. It writes `deck/<topic>.json` in this repo
-(`AUTOMATION_TUTOR_DECK_SRC`, which `run.sh` and `scripts/tutor_deploy.sh`
-set) and the live release's own copy too. It does not commit and does not
-push to Anki. Without the variable the view is read-only.
+The tutor moved to its own repo, `~/src/tutor`, with a copy of these cards in
+`subjects/automation/deck/`. Its **Edit cards** view writes that copy, not
+this `deck/`, so the two can drift: an edit made in the tutor reaches the Anki
+package only once it is copied back here.
 
 `check` fetches each source once into `~/.cache/plc-lab/sources`, reduces it
 to plain text (PDFs go through `pdftotext`) and requires the excerpt to
