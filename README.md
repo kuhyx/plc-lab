@@ -141,6 +141,7 @@ a link to its source.
 scripts/setup_dev.sh
 .venv/bin/python -m plc_lab check   # every excerpt must be in its source
 .venv/bin/python -m plc_lab build   # -> build/automation.apkg (Automation::<topic>)
+scripts/deploy.sh                   # check + build + import into anki-syncserver
 ```
 
 The tutor moved to its own repo, `~/src/tutor`, with a copy of these cards in

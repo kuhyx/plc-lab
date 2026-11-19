@@ -28,6 +28,7 @@ Read README.md first. These are the invariants that are easy to break.
 ## Commands
 
 - run: `.venv/bin/python -m plc_lab build`
+- deploy: `scripts/deploy.sh` (check, build, import the deck into anki-syncserver; `--dry-run` imports locally only)
 - tutor: moved to `~/src/tutor` (kuhyx/tutor); start it with `~/src/tutor/run.sh`
 - test: `.venv/bin/python -m pytest -q`
 - test-changed: `scripts/test_changed.sh`
