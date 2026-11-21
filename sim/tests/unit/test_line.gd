@@ -40,3 +40,12 @@ func test_parse_args() -> void:
 		Line.parse_args(PackedStringArray(["--mock", "--port=1502", "plain"])),
 		{"mock": "", "port": "1502"}
 	)
+
+
+func test_credit_sits_in_the_bottom_right_corner() -> void:
+	var line: Line = autofree(Line.new())
+	line.add_credit()
+	var credit: Control = line.find_child("KuhyCredit", true, false)
+	assert_not_null(credit)
+	assert_eq(credit.name, &"KuhyCredit")
+	assert_eq(credit.position, Vector2(1280 - 64, 720 - 64))

@@ -8,6 +8,10 @@ extends Node2D
 const MOCK_EVERY_TICKS: int = 3  # ~50 ms scan at 60 physics ticks/s
 const AUTOSTART_TICKS: int = 15
 
+## The shared kuhy credit logo, inset from the window's bottom-right corner.
+const CREDIT_SCENE: PackedScene = preload("res://addons/kuhy_credit/kuhy_credit.tscn")
+const CREDIT_INSET: int = 16
+
 var model: PlantModel
 var server: ModbusServer = ModbusServer.new()
 var mock: MockPlc = null
@@ -20,6 +24,23 @@ var _autostart: bool = false
 
 func _ready() -> void:
 	setup(OS.get_cmdline_user_args())
+	add_credit()
+
+
+## Puts the kuhy credit in a CanvasLayer so it stays fixed in the corner.
+func add_credit() -> void:
+	var layer: CanvasLayer = CanvasLayer.new()
+	layer.name = "CreditLayer"
+	add_child(layer)
+	var credit: Control = CREDIT_SCENE.instantiate() as Control
+	credit.name = "KuhyCredit"
+	var view_width: int = ProjectSettings.get_setting("display/window/size/viewport_width", 1280)
+	var view_height: int = ProjectSettings.get_setting("display/window/size/viewport_height", 720)
+	var view: Vector2 = Vector2(view_width, view_height)
+	var logo_size: int = credit.get("logo_size")
+	var edge: int = logo_size + CREDIT_INSET
+	credit.position = view - Vector2(edge, edge)
+	layer.add_child(credit)
 
 
 ## Builds the plant, listens, and (with --mock) starts the mock PLC.
